@@ -12,31 +12,26 @@
         body { font-family: 'Noto Sans TC', sans-serif; background-color: var(--bg-color); color: var(--text-color); transition: all 0.3s ease; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         
-        /* 統計區塊文字放大 */
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
         .stat-card { background: white; padding: 15px; border-radius: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
         .stat-label { font-size: 15px; font-weight: 900; color: #a1a1a1; margin-bottom: 2px; }
         .stat-value { font-size: 2rem; font-weight: 900; color: var(--theme-color); line-height: 1.2; }
         
-        /* 日曆 */
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
         .day-cell { aspect-ratio: 1/1; border-radius: 12px; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center; background: white; border: 1px solid rgba(0,0,0,0.02); position: relative; }
         .day-cell.today { border: 2.5px solid var(--theme-color); color: var(--theme-color); }
         .badge { position: absolute; top: 2px; right: 2px; background: white; color: var(--theme-color); font-size: 10px; min-width: 16px; height: 16px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 900; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
 
-        /* 表單按鈕與日期輸入 */
         .date-input-field { background: #fff; border: 2px solid var(--theme-color); padding: 10px; border-radius: 15px; font-weight: 900; color: var(--text-color); width: 100%; font-size: 20px; outline: none; text-align: center; }
         .chip-btn { border: 1px solid #eee; color: #888; padding: 8px 14px; border-radius: 12px; font-size: 15px; font-weight: 700; background: white; }
-        .chip-btn.selected { background-color: var(--theme-color); color: white; border-color: var(--theme-color); }
+        .chip-btn.selected { background-color: var(--theme-color) !important; color: white !important; border-color: var(--theme-color) !important; }
         
         .tab-btn { padding: 12px 0; font-weight: 900; font-size: 20px; color: #ccc; flex: 1; border-bottom: 4px solid transparent; }
         .tab-btn.active { color: var(--text-color); border-bottom-color: var(--theme-color); }
 
-        /* 滑動清單 */
         .swipe-item { position: relative; overflow: hidden; border-radius: 1.5rem; margin-bottom: 12px; }
         .swipe-content { position: relative; z-index: 10; background: white; transition: transform 0.2s ease-out; }
         
-        /* Modal 修正 - 防止儲存按鈕被擋住 */
         .modal-content-wrapper { display: flex; flex-direction: column; height: 100%; }
         .modal-body { flex: 1; overflow-y: auto; padding: 20px 30px; }
         .modal-footer { flex-shrink: 0; padding: 15px 30px 25px; border-top: 1px solid #f9f9f9; background: white; }
@@ -101,7 +96,7 @@
         <div class="flex-grow overflow-y-auto px-5 pb-24 no-scrollbar" id="list-items-container"></div>
     </div>
 
-    <div id="day-detail-modal" class="fixed inset-0 bg-pink-900/20 backdrop-blur-md hidden items-end sm:items-center justify-center z-50 transition-opacity opacity-0" onclick="if(event.target === this) closeDayDetail()">
+    <div id="day-detail-modal" class="fixed inset-0 bg-pink-900/20 backdrop-blur-md hidden items-end sm:items-center justify-center z-[60] transition-opacity opacity-0" onclick="if(event.target === this) closeDayDetail()">
         <div class="bg-white w-full sm:w-[420px] rounded-t-[3rem] sm:rounded-[3rem] max-h-[80vh] flex flex-col shadow-2xl transform transition-transform translate-y-full" id="day-detail-modal-content">
             <div class="p-7 border-b border-pink-50 flex justify-between items-center">
                 <span class="font-black text-2xl text-gray-500" id="detail-date-title"></span>
@@ -109,14 +104,14 @@
             </div>
             <div class="p-7 overflow-y-auto flex-grow no-scrollbar" id="day-records-list"></div>
             <div class="p-7 pt-2">
-                <button onclick="openEntryForm(currentViewingDate)" class="w-full bg-theme text-gray-700 font-black py-4 rounded-2xl shadow-lg flex items-center justify-center gap-2 text-lg">
+                <button onclick="openEntryForm(currentViewingDate)" class="w-full bg-theme text-[#5d4037] font-black py-4 rounded-2xl shadow-lg flex items-center justify-center gap-2 text-lg">
                     <i class="fas fa-plus"></i> 在此日期新增一杯
                 </button>
             </div>
         </div>
     </div>
 
-    <div id="entry-modal" class="fixed inset-0 bg-pink-900/20 backdrop-blur-md hidden items-end sm:items-center justify-center z-50 transition-opacity opacity-0" onclick="if(event.target === this) closeEntryModal()">
+    <div id="entry-modal" class="fixed inset-0 bg-pink-900/20 backdrop-blur-md hidden items-end sm:items-center justify-center z-[70] transition-opacity opacity-0" onclick="if(event.target === this) closeEntryModal()">
         <div class="bg-white w-full sm:w-[420px] rounded-t-[3rem] sm:rounded-[3rem] h-[85vh] flex flex-col shadow-2xl transform transition-transform translate-y-full" id="entry-modal-content">
             <div class="modal-content-wrapper">
                 <div class="p-8 pb-4 border-b border-pink-50 bg-pink-50/20 rounded-t-[3rem]">
@@ -140,34 +135,13 @@
 
                 <div class="modal-footer flex gap-4">
                     <button onclick="clearForm()" class="px-4 font-black text-gray-400">清空</button>
-                    <button onclick="saveEntry()" class="flex-1 bg-theme text-gray-700 font-black py-4 rounded-2xl shadow-xl text-xl">儲存紀錄</button>
+                    <button onclick="saveEntry()" class="flex-1 bg-theme text-[#5d4037] font-black py-4 rounded-2xl shadow-xl text-xl">儲存紀錄</button>
                 </div>
             </div>
         </div>
     </div>
 
     <button onclick="openQuickAdd()" class="fixed bottom-8 right-8 w-16 h-16 bg-theme text-white rounded-[22px] flex items-center justify-center text-3xl z-40 shadow-xl shadow-pink-200"><i class="fas fa-plus"></i></button>
-
-    <div id="settings-menu" class="fixed inset-0 bg-black/20 z-50 hidden" onclick="if(event.target === this) toggleSettings()">
-        <div class="absolute right-6 top-20 bg-white rounded-[2.5rem] shadow-2xl w-72 overflow-hidden border border-pink-50">
-            <div class="p-6 border-b bg-pink-50/30">
-                <p class="text-[12px] font-black text-gray-300 mb-3">同步帳號 (UID)</p>
-                <div class="flex gap-2">
-                    <input type="text" id="user-uid" readonly class="flex-1 bg-white border-none p-3 rounded-xl text-[11px] font-mono shadow-inner outline-none">
-                    <button onclick="copyUID()" class="bg-pink-100 text-pink-400 px-3 rounded-xl text-xs font-black">複製</button>
-                </div>
-            </div>
-            <div class="p-6">
-                <div class="flex gap-1 mb-5 bg-gray-50 p-1.5 rounded-2xl">
-                    <button id="target-theme" onclick="setColorTarget('theme')" class="flex-1 py-2 rounded-xl text-xs font-black">主題</button>
-                    <button id="target-bg" onclick="setColorTarget('bg')" class="flex-1 py-2 rounded-xl text-xs font-black">背景</button>
-                    <button id="target-text" onclick="setColorTarget('text')" class="flex-1 py-2 rounded-xl text-xs font-black">文字</button>
-                </div>
-                <div class="flex flex-wrap gap-3 justify-center" id="color-palette"></div>
-            </div>
-            <div class="p-6 bg-pink-50/20"><input type="text" id="import-uid" class="w-full bg-white p-4 text-xs rounded-2xl mb-3 outline-none" placeholder="輸入代碼"><button onclick="switchUser()" class="w-full bg-theme text-white py-4 rounded-2xl text-sm font-black shadow-lg">同步雲端</button></div>
-        </div>
-    </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
@@ -186,9 +160,9 @@
 
         window.drinkDB = {};
         window.userSettings = { bgColor: '#fff5f5', themeColor: '#ffafbd', textColor: '#4a4a4a' };
-        let unsubscribeSync = null, currentMonth = new Date().getMonth(), currentViewingDate = '', listType = 'month', colorTarget = 'theme', editingIdx = null, selectedIce = '正常', selectedSugar = '全糖', sortOrder = 'desc';
+        let unsubscribeSync = null, currentMonth = new Date().getMonth(), currentViewingDate = '', listType = 'month', editingIdx = null, selectedIce = '', selectedSugar = '', sortOrder = 'desc';
 
-        onAuthStateChanged(auth, (user) => { if (user) { document.getElementById('user-uid').value = user.uid; startSync(user.uid); } else { signInAnonymously(auth); } });
+        onAuthStateChanged(auth, (user) => { if (user) { startSync(user.uid); } else { signInAnonymously(auth); } });
 
         function startSync(uid) {
             if (unsubscribeSync) unsubscribeSync();
@@ -208,7 +182,6 @@
         };
 
         const YEAR = 2026;
-        const colors = ['#ffafbd','#ffc3a0','#ff9a9e','#fbc2eb','#a18cd1','#96e6a1','#6d8299','#709fb0','#a0c1b8','#f4ebdb','#4a4a4a','#fff5f5','#ffffff'];
 
         window.applyTheme = () => {
             document.documentElement.style.setProperty('--bg-color', window.userSettings.bgColor);
@@ -216,13 +189,6 @@
             document.documentElement.style.setProperty('--text-color', window.userSettings.textColor);
             document.body.style.backgroundColor = window.userSettings.bgColor;
             document.body.style.color = window.userSettings.textColor;
-            ['theme', 'bg', 'text'].forEach(t => {
-                const b = document.getElementById(`target-${t}`);
-                if(b) {
-                    b.style.background = colorTarget === t ? window.userSettings.themeColor : '#eee';
-                    b.style.color = colorTarget === t ? 'white' : '#bbb';
-                }
-            });
         };
 
         window.renderAll = () => {
@@ -264,46 +230,38 @@
         window.renderDayDetail = (ds) => { 
             const list = document.getElementById('day-records-list'); 
             list.innerHTML = ''; 
-            (window.drinkDB[ds] || []).forEach((r, i) => list.appendChild(createSwipeItem(r, ds, i, false))); 
+            (window.drinkDB[ds] || []).forEach((r, i) => {
+                const item = createSwipeItem(r, ds, i, false);
+                list.appendChild(item);
+            }); 
         };
 
-        function createSwipeItem(record, date, idx, isYear) {
-            const wrapper = document.createElement('div'); wrapper.className = 'swipe-item';
-            if(!isYear) wrapper.innerHTML = `<div class="absolute right-0 top-0 h-full w-20 bg-red-100 text-red-500 flex items-center justify-center font-black" style="z-index:5;" onclick="delRec('${date}',${idx})">刪除</div><div class="absolute left-0 top-0 h-full w-20 bg-blue-50 text-blue-500 flex items-center justify-center font-black" style="z-index:5;" onclick="openEntryForm('${date}',${idx})">修正</div>`;
-            const content = document.createElement('div');
-            content.className = 'swipe-content p-6 flex justify-between items-center';
-            const fmtDate = date.replace(/-/g, '/');
-            content.innerHTML = `<div><div class="text-[10px] font-black text-pink-200 mb-1 tracking-widest">${fmtDate}</div><div class="font-black text-xl text-gray-600">${record.shop} · ${record.item}</div><div class="text-sm text-gray-400 font-bold mt-1">${record.ice}/${record.sugar}${record.note ? ' · '+record.note : ''}</div></div><div class="text-2xl font-black text-theme">$${record.price}</div>`;
-            if(!isYear) {
-                let startX = 0, currentX = 0;
-                content.ontouchstart = (e) => { startX = e.touches[0].pageX; content.style.transition = 'none'; };
-                content.ontouchmove = (e) => { currentX = e.touches[0].pageX - startX; if(currentX < -80) currentX = -80; if(currentX > 80) currentX = 80; content.style.transform = `translateX(${currentX}px)`; };
-                content.ontouchend = () => { content.style.transition = '0.2s'; if(currentX < -40) content.style.transform = 'translateX(-80px)'; else if(currentX > 40) content.style.transform = 'translateX(80px)'; else content.style.transform = 'translateX(0px)'; currentX = 0; };
-            }
-            wrapper.appendChild(content); return wrapper;
-        }
-
-        window.delRec = (d, i) => { window.drinkDB[d].splice(i, 1); if(!window.drinkDB[d].length) delete window.drinkDB[d]; window.saveData(); };
-
         window.openEntryForm = (ds, idx = null) => {
-            // 修正：如果是從日曆傳進來的日期，格式為 YYYY-MM-DD，轉為 YYYY/MM/DD
-            const dateToUse = ds ? ds.replace(/-/g, '/') : new Date().toLocaleDateString('zh-TW', {year:'numeric', month:'2-digit', day:'2-digit'});
+            // 重要修正：處理多種日期格式傳入
+            let dateToDisplay = "";
+            if(ds) {
+                dateToDisplay = ds.replace(/-/g, '/');
+            } else {
+                dateToDisplay = new Date().toLocaleDateString('zh-TW', {year:'numeric', month:'2-digit', day:'2-digit'});
+            }
+            
             editingIdx = idx;
-            document.getElementById('input-date-text').value = dateToUse;
+            document.getElementById('input-date-text').value = dateToDisplay;
             document.getElementById('form-title').innerText = idx !== null ? '修正紀錄' : '新增紀錄';
             
-            if(idx !== null) {
+            clearForm(); // 先清空
+
+            if(idx !== null && window.drinkDB[ds]) {
                 const r = window.drinkDB[ds][idx];
                 document.getElementById('input-shop').value = r.shop; 
                 document.getElementById('input-item').value = r.item;
                 document.getElementById('input-price').value = r.price; 
                 document.getElementById('input-note').value = r.note || '';
                 selectedIce = r.ice; selectedSugar = r.sugar;
-            } else {
-                clearForm();
+                updateChips('ice-options', selectedIce); 
+                updateChips('sugar-options', selectedSugar);
             }
-            updateChips('ice-options', selectedIce); 
-            updateChips('sugar-options', selectedSugar);
+            
             toggleModal('entry-modal', true);
         };
 
@@ -314,8 +272,9 @@
             let rawDate = document.getElementById('input-date-text').value;
             let chosenDate = rawDate.replace(/\//g, '-');
             
-            if(!shop || !item || !price) return alert('請完整填寫紀錄');
-            if(!/^\d{4}-\d{2}-\d{2}$/.test(chosenDate)) return alert('日期格式錯誤！請輸入 YYYY/MM/DD');
+            if(!shop || !item || !price) return alert('請完整填寫店名、品項與價格');
+            if(!/^\d{4}-\d{2}-\d{2}$/.test(chosenDate)) return alert('日期格式錯誤！');
+            if(!selectedIce || !selectedSugar) return alert('請選擇冰塊與甜度');
             
             if(!window.drinkDB[chosenDate]) window.drinkDB[chosenDate] = [];
             const data = { shop, item, price, ice: selectedIce, sugar: selectedSugar, note: document.getElementById('input-note').value };
@@ -328,11 +287,26 @@
             
             window.saveData();
             closeEntryModal();
-            if(!document.getElementById('day-detail-modal').classList.contains('hidden')) renderDayDetail(chosenDate);
+            closeDayDetail(); // 儲存後一併關閉詳情
         };
 
-        window.toggleSort = () => { sortOrder = sortOrder === 'desc' ? 'asc' : 'desc'; document.getElementById('sort-icon').className = sortOrder === 'desc' ? 'fas fa-sort-amount-down' : 'fas fa-sort-amount-up'; renderList(); };
+        function createSwipeItem(record, date, idx, isYear) {
+            const wrapper = document.createElement('div'); wrapper.className = 'swipe-item';
+            if(!isYear) wrapper.innerHTML = `<div class="absolute right-0 top-0 h-full w-20 bg-red-100 text-red-500 flex items-center justify-center font-black" style="z-index:5;" onclick="delRec('${date}',${idx})">刪除</div><div class="absolute left-0 top-0 h-full w-20 bg-blue-50 text-blue-500 flex items-center justify-center font-black" style="z-index:5;" onclick="openEntryForm('${date}',${idx})">修正</div>`;
+            const content = document.createElement('div');
+            content.className = 'swipe-content p-6 flex justify-between items-center';
+            content.innerHTML = `<div><div class="text-[10px] font-black text-pink-200 mb-1">${date.replace(/-/g, '/')}</div><div class="font-black text-xl text-gray-600">${record.shop} · ${record.item}</div><div class="text-sm text-gray-400 font-bold mt-1">${record.ice}/${record.sugar}${record.note ? ' · '+record.note : ''}</div></div><div class="text-2xl font-black text-theme">$${record.price}</div>`;
+            if(!isYear) {
+                let startX = 0, currentX = 0;
+                content.ontouchstart = (e) => { startX = e.touches[0].pageX; content.style.transition = 'none'; };
+                content.ontouchmove = (e) => { currentX = e.touches[0].pageX - startX; if(currentX < -80) currentX = -80; if(currentX > 80) currentX = 80; content.style.transform = `translateX(${currentX}px)`; };
+                content.ontouchend = () => { content.style.transition = '0.2s'; if(currentX < -40) content.style.transform = 'translateX(-80px)'; else if(currentX > 40) content.style.transform = 'translateX(80px)'; else content.style.transform = 'translateX(0px)'; currentX = 0; };
+            }
+            wrapper.appendChild(content); return wrapper;
+        }
 
+        window.delRec = (d, i) => { window.drinkDB[d].splice(i, 1); if(!window.drinkDB[d].length) delete window.drinkDB[d]; window.saveData(); };
+        window.toggleSort = () => { sortOrder = sortOrder === 'desc' ? 'asc' : 'desc'; document.getElementById('sort-icon').className = sortOrder === 'desc' ? 'fas fa-sort-amount-down' : 'fas fa-sort-amount-up'; renderList(); };
         window.renderList = () => {
             const container = document.getElementById('list-items-container'); container.innerHTML = '';
             let all = []; const mPrefix = `${YEAR}-${String(currentMonth+1).padStart(2,'0')}`;
@@ -340,14 +314,6 @@
             all.sort((a,b) => sortOrder === 'desc' ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date));
             all.forEach(r => container.appendChild(createSwipeItem(r, r.date, r.idx, listType==='year')));
         };
-
-        window.setColorTarget = (t) => { colorTarget = t; applyTheme(); };
-        colors.forEach(c => {
-            const d = document.createElement('div'); d.className = 'swatch'; d.style.background = c;
-            d.onclick = () => { if(colorTarget==='theme') window.userSettings.themeColor = c; else if(colorTarget==='bg') window.userSettings.bgColor = c; else window.userSettings.textColor = c; applyTheme(); window.saveData(); };
-            document.getElementById('color-palette').appendChild(d);
-        });
-
         window.updateStats = () => {
             let mc=0, m$=0, yc=0, y$=0; const mPrefix = `${YEAR}-${String(currentMonth+1).padStart(2,'0')}`;
             Object.keys(window.drinkDB).forEach(d => { window.drinkDB[d].forEach(r => { const p = parseInt(r.price)||0; yc++; y$+=p; if(d.startsWith(mPrefix)) { mc++; m$+=p; } }); });
@@ -361,15 +327,15 @@
         window.closeEntryModal = () => { editingIdx = null; toggleModal('entry-modal', false); };
         window.closeDayDetail = () => toggleModal('day-detail-modal', false);
         window.switchView = (v) => { document.getElementById('calendar-view-container').classList.toggle('hidden', v==='list'); document.getElementById('list-view-container').classList.toggle('hidden', v==='calendar'); document.getElementById('tab-calendar').classList.toggle('active', v==='calendar'); document.getElementById('tab-list').classList.toggle('active', v==='list'); };
-        window.switchListType = (t) => { listType = t; document.getElementById('subtab-month').className = t === 'month' ? 'bg-white py-2 flex-1 rounded-xl font-black shadow-sm text-sm' : 'text-gray-300 py-2 flex-1 rounded-xl font-black text-sm'; document.getElementById('subtab-year').className = t === 'year' ? 'bg-white py-2 flex-1 rounded-xl font-black shadow-sm text-sm' : 'text-gray-300 py-2 flex-1 rounded-xl font-black text-sm'; renderList(); };
+        window.switchListType = (t) => { listType = t; renderList(); };
         
         window.clearForm = () => { 
             document.getElementById('input-shop').value = ''; 
             document.getElementById('input-item').value = ''; 
             document.getElementById('input-price').value = ''; 
             document.getElementById('input-note').value = ''; 
-            selectedIce = '正常'; selectedSugar = '全糖'; 
-            updateChips('ice-options','正常'); updateChips('sugar-options','全糖'); 
+            selectedIce = ''; selectedSugar = ''; 
+            Array.from(document.querySelectorAll('.chip-btn')).forEach(c => c.classList.remove('selected'));
         };
 
         function updateChips(id, val) { Array.from(document.getElementById(id).children).forEach(c => c.classList.toggle('selected', c.innerText === val)); }
