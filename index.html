@@ -113,6 +113,13 @@
         </div>
     </div>
 
+    <div id="settings-menu" class="fixed inset-0 bg-black/50 z-50 hidden" onclick="if(event.target === this) toggleSettings()">
+        <div class="absolute right-4 top-16 bg-white rounded-2xl shadow-xl w-72 p-4">
+            <p class="text-[10px] text-gray-400 font-bold uppercase mb-1">同步代碼</p>
+            <input type="text" id="user-uid" readonly class="w-full bg-gray-100 p-2 text-[10px] rounded mb-4 font-mono">
+        </div>
+    </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
@@ -136,12 +143,13 @@
         window.currentUser = null;
         let currentMonth = new Date().getMonth();
         let currentViewingDate = '';
-        let listType = 'month'; // 'month' or 'year'
+        let listType = 'month';
         let selectedIce = '', selectedSugar = '';
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 window.currentUser = user;
+                document.getElementById('user-uid').value = user.uid;
                 startSync(user.uid);
             } else {
                 signInAnonymously(auth);
@@ -163,7 +171,7 @@
             const shop = document.getElementById('input-shop').value;
             const item = document.getElementById('input-item').value;
             const price = document.getElementById('input-price').value;
-            if(!shop || !item) return alert('請填寫完整資訊');
+            if(!shop || !item) return alert('請填寫店名與品項');
 
             if(!window.drinkDB[currentViewingDate]) window.drinkDB[currentViewingDate] = [];
             window.drinkDB[currentViewingDate].push({ shop, item, price, ice: selectedIce, sugar: selectedSugar });
@@ -188,7 +196,7 @@
             grid.innerHTML = '';
             const firstDay = new Date(2026, currentMonth, 1).getDay();
             const totalDays = new Date(2026, currentMonth + 1, 0).getDate();
-            const today = new Date().toISOString().split('T')[0];
+            const todayStr = new Date().toISOString().split('T')[0];
 
             for(let i=0; i<firstDay; i++) grid.appendChild(document.createElement('div'));
             
@@ -196,9 +204,9 @@
                 const ds = `2026-${String(currentMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
                 const records = window.drinkDB[ds] || [];
                 const cell = document.createElement('div');
-                cell.className = `day-cell ${ds === today ? 'today' : ''} ${records.length > 0 ? 'has-data' : ''}`;
+                cell.className = `day-cell ${ds === todayStr ? 'today' : ''} ${records.length > 0 ? 'has-data' : ''}`;
                 cell.innerHTML = records.length > 0 ? '🥤' : d;
-                cell.onclick = () => openQuickAdd(ds);
+                cell.onclick = () => { currentViewingDate = ds; document.getElementById('form-date-subtitle').innerText = ds; document.getElementById('entry-modal').classList.remove('hidden'); };
                 grid.appendChild(cell);
             }
         }
@@ -255,14 +263,11 @@
         };
 
         window.changeMonth = (d) => { currentMonth = (currentMonth + d + 12) % 12; renderAll(); };
-        window.openQuickAdd = (ds) => { 
-            currentViewingDate = ds || new Date().toISOString().split('T')[0];
-            document.getElementById('form-date-subtitle').innerText = currentViewingDate;
-            document.getElementById('entry-modal').classList.remove('hidden'); 
-        };
+        window.openQuickAdd = () => { currentViewingDate = new Date().toISOString().split('T')[0]; document.getElementById('form-date-subtitle').innerText = currentViewingDate; document.getElementById('entry-modal').classList.remove('hidden'); };
         window.closeEntryModal = () => document.getElementById('entry-modal').classList.add('hidden');
+        window.toggleSettings = () => document.getElementById('settings-menu').classList.toggle('hidden');
 
-        // 選項初始化
+        // 初始化選項
         const iceOpts = ['固定', '正常', '少冰', '微冰', '去冰', '常溫', '熱'];
         const sugarOpts = ['固定', '全糖', '少糖', '半糖', '微糖', '一分糖', '無糖'];
         const setup = (id, opts, type) => {
