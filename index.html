@@ -28,10 +28,6 @@
         .text-theme { color: var(--theme-color) !important; }
         .swatch { width: 28px; height: 28px; border-radius: 8px; cursor: pointer; border: 2px solid white; box-shadow: 0 0 0 1px #e5e7eb; }
 
-        .swipe-container { position: relative; overflow: hidden; border-radius: 1rem; margin-bottom: 0.75rem; width: 100%; }
-        .swipe-content { position: relative; z-index: 10; transition: transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28); background: white; cursor: pointer; width: 100%; }
-        .swipe-action { position: absolute; top: 0; right: 0; height: 100%; width: 80px; background-color: #ef4444; color: white; display: flex; align-items: center; justify-content: center; z-index: 5; border-radius: 0 1rem 1rem 0; font-weight: bold; }
-        
         .loading-overlay { position: fixed; inset: 0; background: white; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s; }
     </style>
 </head>
@@ -175,12 +171,9 @@
                 </div>
             </div>
             <div class="p-4">
-                <label class="text-xs font-bold text-gray-400 block mb-2">主題設定</label>
-                <div class="flex flex-wrap gap-2">
-                    <div class="swatch bg-red-400" onclick="setTheme('themeColor', '#f87171')"></div>
-                    <div class="swatch bg-blue-400" onclick="setTheme('themeColor', '#60a5fa')"></div>
-                    <div class="swatch bg-emerald-400" onclick="setTheme('themeColor', '#34d399')"></div>
-                </div>
+                <label class="text-xs font-bold text-gray-400 block mb-2">莫蘭迪色系主題</label>
+                <div class="flex flex-wrap gap-2" id="theme-swatches">
+                    </div>
             </div>
         </div>
     </div>
@@ -207,17 +200,9 @@
         window.drinkDB = {};
         window.userSettings = { bgColor: '#fdf6e3', themeColor: '#f87171' };
         window.currentUser = null;
+        let unsubscribeSync = null;
 
-        window.hideLoading = () => {
-            const screen = document.getElementById('loading-screen');
-            if (screen) {
-                screen.style.opacity = '0';
-                setTimeout(() => screen.style.display = 'none', 500);
-            }
-        };
-
-        const loadingTimeout = setTimeout(window.hideLoading, 3000);
-
+        // --- 初始化登入 ---
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 window.currentUser = user;
@@ -228,27 +213,42 @@
             }
         });
 
+        // --- 跨裝置同步核心邏輯 ---
         function startSync(uid) {
+            if (unsubscribeSync) unsubscribeSync();
             const userDocRef = doc(db, 'artifacts', appId, 'users', uid);
-            onSnapshot(userDocRef, (docSnap) => {
-                clearTimeout(loadingTimeout);
+            unsubscribeSync = onSnapshot(userDocRef, (docSnap) => {
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     window.drinkDB = data.records || {};
                     window.userSettings = data.settings || window.userSettings;
                     window.applyTheme();
+                } else {
+                    window.drinkDB = {};
                 }
                 renderAll();
-                window.hideLoading();
+                hideLoading();
             }, (err) => {
                 console.warn("Sync Error:", err);
-                window.hideLoading();
+                hideLoading();
             });
         }
 
+        window.switchUser = () => {
+            const targetUID = document.getElementById('import-uid').value.trim();
+            if (!targetUID || targetUID.length < 10) return alert('請輸入正確的同步代碼');
+            if (confirm('確定要同步此帳號資料嗎？這會載入對方的所有紀錄。')) {
+                startSync(targetUID);
+                document.getElementById('user-uid').value = targetUID;
+                alert('同步成功！');
+                toggleSettings();
+            }
+        };
+
         window.saveData = async () => {
-            if (!window.currentUser) return;
-            const userDocRef = doc(db, 'artifacts', appId, 'users', window.currentUser.uid);
+            const uid = document.getElementById('user-uid').value;
+            if (!uid) return;
+            const userDocRef = doc(db, 'artifacts', appId, 'users', uid);
             await setDoc(userDocRef, {
                 records: window.drinkDB,
                 settings: window.userSettings,
@@ -256,10 +256,12 @@
             }, { merge: true });
         };
 
+        // --- UI 常數與變數 ---
         const YEAR = 2026;
         const iceOpts = ['固定', '正常', '少冰', '微冰', '去冰', '常溫', '熱'];
         const sugarOpts = ['固定', '全糖', '少糖', '半糖', '微糖', '一分糖', '無糖'];
         const months = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+        const morandiColors = ['#f87171','#60a5fa','#34d399','#91a3b0','#b4c4d1','#d8a7b1','#af9483','#a3b18a','#84a59d','#9d8189','#4a4e69'];
 
         let currentMonth = new Date().getMonth();
         let currentViewingDate = '';
@@ -299,7 +301,7 @@
             }
         }
 
-        window.renderList = () => {
+        function renderList() {
             const container = document.getElementById('list-items-container');
             container.innerHTML = '';
             const mPrefix = `${YEAR}-${String(currentMonth+1).padStart(2,'0')}`;
@@ -309,25 +311,11 @@
                 window.drinkDB[date].forEach(record => {
                     const div = document.createElement('div');
                     div.className = 'bg-white p-4 rounded-2xl mb-3 shadow-sm flex justify-between items-center';
-                    div.innerHTML = `
-                        <div>
-                            <div class="text-[10px] text-gray-400 font-bold mb-1">${date}</div>
-                            <div class="font-bold text-gray-700">${record.shop} · ${record.item}</div>
-                            <div class="text-[10px] text-gray-400 mt-0.5">${record.ice} / ${record.sugar}</div>
-                        </div>
-                        <div class="text-lg font-bold text-theme">$${record.price}</div>
-                    `;
+                    div.innerHTML = `<div><div class="text-[10px] text-gray-400 font-bold mb-1">${date}</div><div class="font-bold text-gray-700">${record.shop} · ${record.item}</div><div class="text-[10px] text-gray-400 mt-0.5">${record.ice} / ${record.sugar}</div></div><div class="text-lg font-bold text-theme">$${record.price}</div>`;
                     container.appendChild(div);
                 });
             });
-        };
-
-        window.openEntryForm = (ds) => {
-            currentViewingDate = ds;
-            document.getElementById('form-date-subtitle').innerText = ds;
-            clearForm();
-            toggleModal('entry-modal', true);
-        };
+        }
 
         window.saveEntry = () => {
             const shop = document.getElementById('input-shop').value;
@@ -344,41 +332,7 @@
             renderAll();
         };
 
-        window.clearForm = () => {
-            document.getElementById('input-shop').value = '';
-            document.getElementById('input-item').value = '';
-            document.getElementById('input-price').value = '';
-            document.getElementById('input-note').value = '';
-            selectedIce = ''; selectedSugar = '';
-            Array.from(document.querySelectorAll('.chip-btn')).forEach(c => c.classList.remove('selected'));
-        };
-
-        function toggleModal(id, show) {
-            const m = document.getElementById(id), c = document.getElementById(id + '-content');
-            if(show) { m.classList.remove('hidden'); setTimeout(()=> { m.classList.remove('opacity-0'); c.classList.remove('translate-y-full'); }, 10); }
-            else { m.classList.add('opacity-0'); c.classList.add('translate-y-full'); setTimeout(()=> m.classList.add('hidden'), 300); }
-        }
-
-        window.closeEntryModal = () => toggleModal('entry-modal', false);
-        window.toggleSettings = () => document.getElementById('settings-menu').classList.toggle('hidden');
-        window.changeMonth = (d) => { currentMonth = (currentMonth+d+12)%12; renderAll(); };
-        window.openQuickAdd = () => openEntryForm(new Date().toISOString().split('T')[0]);
-        
-        window.switchView = (v) => {
-            document.getElementById('calendar-view-container').classList.toggle('hidden', v==='list');
-            document.getElementById('list-view-container').classList.toggle('hidden', v==='calendar');
-            document.getElementById('tab-calendar').classList.toggle('active', v==='calendar');
-            document.getElementById('tab-list').classList.toggle('active', v==='list');
-        };
-
-        window.switchListType = (type) => {
-            listType = type;
-            document.getElementById('subtab-month').className = type === 'month' ? 'bg-white text-theme shadow-sm py-2 flex-1 rounded-lg font-bold' : 'text-gray-400 py-2 flex-1 rounded-lg font-bold';
-            document.getElementById('subtab-year').className = type === 'year' ? 'bg-white text-theme shadow-sm py-2 flex-1 rounded-lg font-bold' : 'text-gray-400 py-2 flex-1 rounded-lg font-bold';
-            renderList();
-        };
-
-        function updateStats() {
+        window.updateStats = () => {
             let mCost = 0, mCount = 0, yCost = 0, yCount = 0;
             const mPrefix = `${YEAR}-${String(currentMonth+1).padStart(2,'0')}`;
             Object.keys(window.drinkDB).forEach(d => {
@@ -392,8 +346,51 @@
             document.getElementById('month-cups').innerText = mCount;
             document.getElementById('year-cost').innerText = yCost;
             document.getElementById('year-cups').innerText = yCount;
-        }
+        };
 
+        // --- 初始化調色盤 ---
+        const swatchContainer = document.getElementById('theme-swatches');
+        morandiColors.forEach(color => {
+            const div = document.createElement('div');
+            div.className = 'swatch';
+            div.style.backgroundColor = color;
+            div.onclick = () => { window.userSettings.themeColor = color; window.applyTheme(); window.saveData(); };
+            swatchContainer.appendChild(div);
+        });
+
+        // --- 輔助函式 ---
+        window.hideLoading = () => {
+            const s = document.getElementById('loading-screen');
+            if(s) { s.style.opacity = '0'; setTimeout(() => s.style.display = 'none', 500); }
+        };
+        window.toggleSettings = () => document.getElementById('settings-menu').classList.toggle('hidden');
+        window.copyUID = () => { navigator.clipboard.writeText(document.getElementById('user-uid').value); alert('代碼已複製'); };
+        window.changeMonth = (d) => { currentMonth = (currentMonth+d+12)%12; renderAll(); };
+        window.openQuickAdd = () => openEntryForm(new Date().toISOString().split('T')[0]);
+        window.openEntryForm = (ds) => { currentViewingDate = ds; document.getElementById('form-date-subtitle').innerText = ds; clearForm(); toggleModal('entry-modal', true); };
+        window.closeEntryModal = () => toggleModal('entry-modal', false);
+        window.clearForm = () => { 
+            document.getElementById('input-shop').value = ''; document.getElementById('input-item').value = '';
+            document.getElementById('input-price').value = ''; document.getElementById('input-note').value = '';
+            selectedIce = ''; selectedSugar = ''; Array.from(document.querySelectorAll('.chip-btn')).forEach(c => c.classList.remove('selected'));
+        };
+        window.switchView = (v) => {
+            document.getElementById('calendar-view-container').classList.toggle('hidden', v==='list');
+            document.getElementById('list-view-container').classList.toggle('hidden', v==='calendar');
+            document.getElementById('tab-calendar').classList.toggle('active', v==='calendar');
+            document.getElementById('tab-list').classList.toggle('active', v==='list');
+        };
+        window.switchListType = (type) => {
+            listType = type;
+            document.getElementById('subtab-month').className = type === 'month' ? 'bg-white text-theme shadow-sm py-2 flex-1 rounded-lg font-bold' : 'text-gray-400 py-2 flex-1 rounded-lg font-bold';
+            document.getElementById('subtab-year').className = type === 'year' ? 'bg-white text-theme shadow-sm py-2 flex-1 rounded-lg font-bold' : 'text-gray-400 py-2 flex-1 rounded-lg font-bold';
+            renderList();
+        };
+        function toggleModal(id, show) {
+            const m = document.getElementById(id), c = document.getElementById(id + '-content');
+            if(show) { m.classList.remove('hidden'); setTimeout(()=> { m.classList.remove('opacity-0'); c.classList.remove('translate-y-full'); }, 10); }
+            else { m.classList.add('opacity-0'); c.classList.add('translate-y-full'); setTimeout(()=> m.classList.add('hidden'), 300); }
+        }
         const mkChip = (t, type) => {
             const b = document.createElement('button');
             b.className = 'chip-btn'; b.innerText = t;
@@ -406,9 +403,6 @@
         };
         iceOpts.forEach(o => document.getElementById('ice-options').appendChild(mkChip(o, 'ice')));
         sugarOpts.forEach(o => document.getElementById('sugar-options').appendChild(mkChip(o, 'sugar')));
-        
-        window.setTheme = (key, val) => { window.userSettings[key] = val; window.applyTheme(); window.saveData(); };
-        window.copyUID = () => { navigator.clipboard.writeText(document.getElementById('user-uid').value); alert('代碼已複製'); };
     </script>
 </body>
 </html>
