@@ -383,7 +383,7 @@
             else { m.classList.add('opacity-0'); c.classList.add('translate-y-full'); setTimeout(()=> m.classList.add('hidden'), 300); }
         }
 
-        const iceOpts = ['固定', '正常', '少冰', '微冰', '去冰', '熱'], sugarOpts = ['固定', '全糖', '少糖', '半糖', '微糖', '無糖'];
+        const iceOpts = ['固定', '正常', '少冰', '微冰', '去冰', '溫', '熱'], sugarOpts = ['固定', '全糖', '少糖', '半糖', '微糖', '一分糖', '無糖'];
         const mkChip = (t, type) => {
             const b = document.createElement('button'); b.className = 'chip-btn'; b.innerText = t;
             b.onclick = (e) => { 
@@ -398,3 +398,4 @@
     </script>
 </body>
 </html>
+
