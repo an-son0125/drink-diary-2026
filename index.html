@@ -12,17 +12,20 @@
         body { font-family: 'Noto Sans TC', sans-serif; background-color: var(--bg-color); color: var(--text-color); transition: all 0.3s ease; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         
+        /* 統計區塊字體放大 */
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
         .stat-card { background: white; padding: 15px; border-radius: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
-        .stat-label { font-size: 15px; font-weight: 900; color: #a1a1a1; margin-bottom: 2px; }
-        .stat-value { font-size: 2rem; font-weight: 900; color: var(--theme-color); line-height: 1.2; }
+        .stat-label { font-size: 16px; font-weight: 900; color: #a1a1a1; margin-bottom: 2px; }
+        .stat-value { font-size: 2.2rem; font-weight: 900; color: var(--theme-color); line-height: 1.2; }
         
+        /* 日曆格線 */
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
         .day-cell { aspect-ratio: 1/1; border-radius: 12px; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center; background: white; border: 1px solid rgba(0,0,0,0.02); position: relative; }
         .day-cell.today { border: 2.5px solid var(--theme-color); color: var(--theme-color); }
         .badge { position: absolute; top: 2px; right: 2px; background: white; color: var(--theme-color); font-size: 10px; min-width: 16px; height: 16px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 900; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
 
-        .date-input-field { background: #fff; border: 2px solid var(--theme-color); padding: 10px; border-radius: 15px; font-weight: 900; color: var(--text-color); width: 100%; font-size: 20px; outline: none; text-align: center; }
+        /* 輸入框與按鈕樣式 */
+        .date-input-field { background: #fff; border: 3px solid var(--theme-color); padding: 12px; border-radius: 18px; font-weight: 900; color: var(--text-color); width: 100%; font-size: 22px; outline: none; text-align: center; }
         .chip-btn { border: 1px solid #eee; color: #888; padding: 8px 14px; border-radius: 12px; font-size: 15px; font-weight: 700; background: white; }
         .chip-btn.selected { background-color: var(--theme-color) !important; color: white !important; border-color: var(--theme-color) !important; }
         
@@ -32,14 +35,15 @@
         .swipe-item { position: relative; overflow: hidden; border-radius: 1.5rem; margin-bottom: 12px; }
         .swipe-content { position: relative; z-index: 10; background: white; transition: transform 0.2s ease-out; }
         
-        .modal-content-wrapper { display: flex; flex-direction: column; height: 100%; }
+        /* Modal 佈局優化 */
+        .modal-content-wrapper { display: flex; flex-direction: column; height: 100%; position: relative; }
         .modal-body { flex: 1; overflow-y: auto; padding: 20px 30px; }
-        .modal-footer { flex-shrink: 0; padding: 15px 30px 25px; border-top: 1px solid #f9f9f9; background: white; }
+        .modal-footer { flex-shrink: 0; padding: 15px 30px 25px; border-top: 1px solid #f9f9f9; background: white; border-radius: 0 0 3rem 3rem; }
     </style>
 </head>
 <body class="h-[100dvh] flex flex-col overflow-hidden">
 
-    <div id="loading-screen" class="fixed inset-0 bg-white z-[100] flex flex-col items-center justify-center font-black text-pink-300">
+    <div id="loading-screen" class="fixed inset-0 bg-white z-[200] flex flex-col items-center justify-center font-black text-pink-300">
         <div class="w-12 h-12 border-4 border-pink-50 border-t-pink-300 rounded-full animate-spin mb-4"></div>
         LOADING...
     </div>
@@ -51,7 +55,7 @@
                     <span class="bg-theme text-white w-10 h-10 rounded-xl flex items-center justify-center shadow-lg"><i class="fas fa-heart"></i></span>
                     <span>翊維飲料日記</span>
                 </h1>
-                <p class="text-[11px] font-black tracking-[0.2em] text-gray-300 mt-1">DRINK DIARY 2026</p>
+                <p class="text-[11px] font-black tracking-[0.2em] text-gray-300 mt-1 uppercase">Drink Diary 2026</p>
             </div>
             <button onclick="toggleSettings()" class="w-11 h-11 rounded-2xl bg-white shadow-sm flex items-center justify-center text-pink-300 border border-pink-50"><i class="fas fa-heart text-xl"></i></button>
         </div>
@@ -96,36 +100,36 @@
         <div class="flex-grow overflow-y-auto px-5 pb-24 no-scrollbar" id="list-items-container"></div>
     </div>
 
-    <div id="day-detail-modal" class="fixed inset-0 bg-pink-900/20 backdrop-blur-md hidden items-end sm:items-center justify-center z-[60] transition-opacity opacity-0" onclick="if(event.target === this) closeDayDetail()">
-        <div class="bg-white w-full sm:w-[420px] rounded-t-[3rem] sm:rounded-[3rem] max-h-[80vh] flex flex-col shadow-2xl transform transition-transform translate-y-full" id="day-detail-modal-content">
+    <div id="day-detail-modal" class="fixed inset-0 bg-black/30 backdrop-blur-sm hidden items-end sm:items-center justify-center z-[100] transition-opacity opacity-0" onclick="if(event.target === this) closeDayDetail()">
+        <div class="bg-white w-full sm:w-[420px] rounded-t-[3rem] sm:rounded-[3rem] max-h-[85vh] flex flex-col shadow-2xl transform transition-transform translate-y-full" id="day-detail-modal-content">
             <div class="p-7 border-b border-pink-50 flex justify-between items-center">
-                <span class="font-black text-2xl text-gray-500" id="detail-date-title"></span>
-                <button onclick="closeDayDetail()" class="text-pink-100"><i class="fas fa-times-circle text-3xl"></i></button>
+                <span class="font-black text-2xl text-gray-600" id="detail-date-title"></span>
+                <button onclick="closeDayDetail()" class="text-pink-200"><i class="fas fa-times-circle text-3xl"></i></button>
             </div>
             <div class="p-7 overflow-y-auto flex-grow no-scrollbar" id="day-records-list"></div>
-            <div class="p-7 pt-2">
-                <button onclick="openEntryForm(currentViewingDate)" class="w-full bg-theme text-[#5d4037] font-black py-4 rounded-2xl shadow-lg flex items-center justify-center gap-2 text-lg">
+            <div class="p-7 pt-2 relative z-[110]">
+                <button onclick="event.stopPropagation(); openEntryForm(currentViewingDate);" class="w-full bg-theme text-[#5d4037] font-black py-5 rounded-2xl shadow-xl flex items-center justify-center gap-2 text-xl active:scale-95 transition-transform">
                     <i class="fas fa-plus"></i> 在此日期新增一杯
                 </button>
             </div>
         </div>
     </div>
 
-    <div id="entry-modal" class="fixed inset-0 bg-pink-900/20 backdrop-blur-md hidden items-end sm:items-center justify-center z-[70] transition-opacity opacity-0" onclick="if(event.target === this) closeEntryModal()">
-        <div class="bg-white w-full sm:w-[420px] rounded-t-[3rem] sm:rounded-[3rem] h-[85vh] flex flex-col shadow-2xl transform transition-transform translate-y-full" id="entry-modal-content">
+    <div id="entry-modal" class="fixed inset-0 bg-black/40 backdrop-blur-md hidden items-end sm:items-center justify-center z-[150] transition-opacity opacity-0" onclick="if(event.target === this) closeEntryModal()">
+        <div class="bg-white w-full sm:w-[420px] rounded-t-[3rem] sm:rounded-[3rem] h-[88vh] flex flex-col shadow-2xl transform transition-transform translate-y-full" id="entry-modal-content">
             <div class="modal-content-wrapper">
                 <div class="p-8 pb-4 border-b border-pink-50 bg-pink-50/20 rounded-t-[3rem]">
                     <div class="flex justify-between items-center mb-4">
                         <span class="font-black text-2xl" id="form-title">新增紀錄</span>
                         <button onclick="closeEntryModal()" class="text-pink-200"><i class="fas fa-times text-2xl"></i></button>
                     </div>
-                    <input type="text" id="input-date-text" class="date-input-field" placeholder="YYYY/MM/DD">
+                    <input type="text" id="input-date-text" class="date-input-field" placeholder="2026/01/01">
                 </div>
                 
                 <div class="modal-body space-y-6 no-scrollbar">
                     <div class="grid grid-cols-2 gap-4">
-                        <div><label class="text-[14px] font-black text-gray-400 mb-2 block">店名</label><input type="text" id="input-shop" class="w-full bg-pink-50/40 rounded-xl p-4 outline-none font-bold text-lg" placeholder="店名"></div>
-                        <div><label class="text-[14px] font-black text-gray-400 mb-2 block">品項</label><input type="text" id="input-item" class="w-full bg-pink-50/40 rounded-xl p-4 outline-none font-bold text-lg" placeholder="品項"></div>
+                        <div><label class="text-[14px] font-black text-gray-400 mb-2 block">店名</label><input type="text" id="input-shop" class="w-full bg-pink-50/40 rounded-xl p-4 outline-none font-black text-lg" placeholder="例如: 50嵐"></div>
+                        <div><label class="text-[14px] font-black text-gray-400 mb-2 block">品項</label><input type="text" id="input-item" class="w-full bg-pink-50/40 rounded-xl p-4 outline-none font-black text-lg" placeholder="例如: 紅茶拿鐵"></div>
                     </div>
                     <div><label class="text-[14px] font-black text-gray-400 mb-2 block">價格</label><input type="number" id="input-price" class="w-32 bg-pink-50/40 rounded-xl p-4 font-black text-2xl text-pink-400 outline-none" placeholder="$"></div>
                     <div><label class="text-[14px] font-black text-gray-400 mb-3 block">冰塊</label><div class="flex flex-wrap gap-2" id="ice-options"></div></div>
@@ -135,7 +139,7 @@
 
                 <div class="modal-footer flex gap-4">
                     <button onclick="clearForm()" class="px-4 font-black text-gray-400">清空</button>
-                    <button onclick="saveEntry()" class="flex-1 bg-theme text-[#5d4037] font-black py-4 rounded-2xl shadow-xl text-xl">儲存紀錄</button>
+                    <button onclick="saveEntry()" class="flex-1 bg-theme text-[#5d4037] font-black py-5 rounded-2xl shadow-xl text-2xl active:scale-95 transition-transform">儲存紀錄</button>
                 </div>
             </div>
         </div>
@@ -230,26 +234,17 @@
         window.renderDayDetail = (ds) => { 
             const list = document.getElementById('day-records-list'); 
             list.innerHTML = ''; 
-            (window.drinkDB[ds] || []).forEach((r, i) => {
-                const item = createSwipeItem(r, ds, i, false);
-                list.appendChild(item);
-            }); 
+            (window.drinkDB[ds] || []).forEach((r, i) => list.appendChild(createSwipeItem(r, ds, i, false))); 
         };
 
         window.openEntryForm = (ds, idx = null) => {
-            // 重要修正：處理多種日期格式傳入
-            let dateToDisplay = "";
-            if(ds) {
-                dateToDisplay = ds.replace(/-/g, '/');
-            } else {
-                dateToDisplay = new Date().toLocaleDateString('zh-TW', {year:'numeric', month:'2-digit', day:'2-digit'});
-            }
-            
+            if (window.event) window.event.stopPropagation();
+            let dateToDisplay = ds ? ds.replace(/-/g, '/') : new Date().toLocaleDateString('zh-TW', {year:'numeric', month:'2-digit', day:'2-digit'});
             editingIdx = idx;
             document.getElementById('input-date-text').value = dateToDisplay;
             document.getElementById('form-title').innerText = idx !== null ? '修正紀錄' : '新增紀錄';
             
-            clearForm(); // 先清空
+            clearForm(); 
 
             if(idx !== null && window.drinkDB[ds]) {
                 const r = window.drinkDB[ds][idx];
@@ -261,7 +256,6 @@
                 updateChips('ice-options', selectedIce); 
                 updateChips('sugar-options', selectedSugar);
             }
-            
             toggleModal('entry-modal', true);
         };
 
@@ -269,25 +263,21 @@
             const shop = document.getElementById('input-shop').value, 
                   item = document.getElementById('input-item').value, 
                   price = document.getElementById('input-price').value;
-            let rawDate = document.getElementById('input-date-text').value;
-            let chosenDate = rawDate.replace(/\//g, '-');
+            let chosenDate = document.getElementById('input-date-text').value.replace(/\//g, '-');
             
-            if(!shop || !item || !price) return alert('請完整填寫店名、品項與價格');
-            if(!/^\d{4}-\d{2}-\d{2}$/.test(chosenDate)) return alert('日期格式錯誤！');
+            if(!shop || !item || !price) return alert('請填寫店名、品項與價格');
+            if(!/^\d{4}-\d{2}-\d{2}$/.test(chosenDate)) return alert('日期格式應為 YYYY/MM/DD');
             if(!selectedIce || !selectedSugar) return alert('請選擇冰塊與甜度');
             
             if(!window.drinkDB[chosenDate]) window.drinkDB[chosenDate] = [];
             const data = { shop, item, price, ice: selectedIce, sugar: selectedSugar, note: document.getElementById('input-note').value };
             
-            if(editingIdx !== null) {
-                window.drinkDB[chosenDate][editingIdx] = data; 
-            } else {
-                window.drinkDB[chosenDate].push(data);
-            }
+            if(editingIdx !== null) window.drinkDB[chosenDate][editingIdx] = data; 
+            else window.drinkDB[chosenDate].push(data);
             
             window.saveData();
             closeEntryModal();
-            closeDayDetail(); // 儲存後一併關閉詳情
+            closeDayDetail();
         };
 
         function createSwipeItem(record, date, idx, isYear) {
