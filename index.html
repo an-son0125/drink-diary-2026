@@ -12,37 +12,36 @@
         body { font-family: 'Noto Sans TC', sans-serif; background-color: var(--bg-color); color: var(--text-color); transition: all 0.3s ease; font-size: 14px; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         
-        /* 統計區塊 (保留圓角) */
+        /* 統計區塊 (修改為置中對齊) */
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
-        .stat-card { background: white; padding: 10px 12px; border-radius: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
-        .stat-label { font-size: 13px; font-weight: 900; color: #a1a1a1; }
-        .stat-value-container { display: flex; align-items: baseline; gap: 2px; }
+        .stat-card { background: white; padding: 12px; border-radius: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .stat-label { font-size: 13px; font-weight: 900; color: #a1a1a1; margin-bottom: 4px; text-align: center; width: 100%; }
+        .stat-value-container { display: flex; align-items: baseline; justify-content: center; gap: 2px; width: 100%; }
         .stat-value { font-size: 1.6rem; font-weight: 900; color: var(--theme-color); line-height: 1.1; }
         .stat-unit { font-size: 12px; font-weight: 700; color: #d1d1d1; }
         
-        /* 日曆 (改為圓角) */
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; } /* 增加gap讓圓角明顯 */
+        /* 日曆 (圓角) */
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
         .day-cell { aspect-ratio: 1/1; border-radius: 14px; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; background: white; border: 1px solid rgba(0,0,0,0.02); position: relative; cursor: pointer; }
         .day-cell.today { border: 2px solid var(--theme-color); color: var(--theme-color); }
-        /* Badge 改為圓形 */
         .badge { position: absolute; top: -2px; right: -2px; background: white; color: var(--theme-color); font-size: 9px; min-width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; box-shadow: 0 1px 2px rgba(0,0,0,0.1); border: 1px solid var(--theme-color); }
 
-        /* 滑動選單 (文字居中) - 圓角 */
+        /* 滑動選單 - 圓角 */
         .swipe-item { position: relative; overflow: hidden; border-radius: 16px; margin-bottom: 6px; background: #f0f0f0; }
         .btn-action { position: absolute; top: 0; bottom: 0; width: 64px; display: flex; align-items: center; justify-content: center; font-weight: 900; color: white; z-index: 1; }
-        .btn-del { right: 0; background-color: #e5989b; }
+        /* 移除 .btn-del 樣式，只保留編輯(更新)按鈕 */
         .btn-edit { left: 0; background-color: #b8c0ff; }
         .swipe-content { position: relative; z-index: 10; background: white; transition: transform 0.2s ease-out; cursor: grab; }
         
-        /* Tab 按鈕 (底部線條模式) */
+        /* Tab 按鈕 */
         .tab-btn { padding: 8px 0; font-weight: 900; font-size: 16px; color: #ccc; flex: 1; border-bottom: 3px solid transparent; }
         .tab-btn.active { color: var(--text-color); border-bottom-color: var(--theme-color); }
 
-        /* Chip 按鈕 (改為圓角) */
+        /* Chip 按鈕 */
         .chip-btn { border: 1px solid #eee; color: #888; padding: 6px 14px; border-radius: 50px; font-size: 13px; font-weight: 700; background: white; }
         .chip-btn.selected { background-color: var(--theme-color) !important; color: white !important; border-color: var(--theme-color) !important; }
 
-        /* 設定選單彈窗 (圓角) */
+        /* 設定選單彈窗 */
         #settings-menu { position: absolute; top: 60px; right: 20px; background: white; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 220px; z-index: 50; overflow: hidden; border: 1px solid #eee; }
         .setting-opt { padding: 12px; font-weight: 700; font-size: 14px; border-bottom: 1px solid #f9f9f9; width: 100%; text-align: left; }
         .uid-box { padding: 10px; background: #f8f8f8; font-size: 10px; word-break: break-all; color: #999; font-family: monospace; border-bottom: 1px solid #eee; }
@@ -59,7 +58,7 @@
         <div class="flex justify-between items-start mb-3">
             <div>
                 <h1 class="text-xl font-black flex items-center gap-2">
-                    <span class="bg-theme text-white w-9 h-9 rounded-2xl flex items-center justify-center shadow-sm"><i class="fas fa-mug-hot text-sm"></i></span>
+                    <span class="bg-theme text-white w-9 h-9 rounded-2xl flex items-center justify-center shadow-sm"><i class="fas fa-heart text-sm"></i></span>
                     <span>翊維飲料日記</span>
                 </h1>
                 <p class="text-[10px] font-black tracking-[0.2em] opacity-50 mt-0.5 ml-1">DRINK DIARY 2026</p>
@@ -274,7 +273,8 @@
             let dateToDisplay = ds ? ds.replace(/-/g, '/') : new Date().toLocaleDateString('zh-TW', {year:'numeric', month:'2-digit', day:'2-digit'});
             editingIdx = idx;
             document.getElementById('input-date-text').value = dateToDisplay;
-            document.getElementById('form-title').innerText = idx !== null ? '修正紀錄' : '新增紀錄';
+            // 修正文字改為更新
+            document.getElementById('form-title').innerText = idx !== null ? '更新紀錄' : '新增紀錄';
             clearForm(); 
             if(idx !== null && window.drinkDB[ds]) {
                 const r = window.drinkDB[ds][idx];
@@ -309,12 +309,14 @@
         function createSwipeItem(record, date, idx, isYear) {
             const wrapper = document.createElement('div'); wrapper.className = 'swipe-item';
             
-            // 根據需求：年度模式下不顯示刪除與修正按鈕
+            // 根據需求：
+            // 1. 移除刪除按鈕
+            // 2. 「修正」改為「更新」
+            // 3. 年度模式不顯示操作按鈕
             let actionsHtml = '';
             if (!isYear) {
                 actionsHtml = `
-                <div class="btn-action btn-del" onclick="delRec('${date}',${idx})"><span>刪除</span></div>
-                <div class="btn-action btn-edit" onclick="openEntryForm('${date}',${idx}, event)"><span>修正</span></div>
+                <div class="btn-action btn-edit" onclick="openEntryForm('${date}',${idx}, event)"><span>更新</span></div>
                 `;
             }
 
@@ -329,21 +331,21 @@
                     <div class="text-xl font-black" style="color:var(--theme-color)">$${record.price}</div>
                 </div>`;
             
-            // 只有在非年度模式下才綁定滑動事件
             if (!isYear) {
                 const content = wrapper.querySelector('.swipe-content');
                 let startX = 0, currentX = 0;
                 content.ontouchstart = (e) => { startX = e.touches[0].pageX; content.style.transition = 'none'; };
                 content.ontouchmove = (e) => { 
                     currentX = e.touches[0].pageX - startX; 
-                    if(currentX < -64) currentX = -64; 
-                    if(currentX > 64) currentX = 64; 
+                    // 移除左滑(負值)顯示刪除的功能
+                    if(currentX < 0) currentX = 0; 
+                    if(currentX > 64) currentX = 64; // 只允許右滑顯示更新
                     content.style.transform = `translateX(${currentX}px)`; 
                 };
                 content.ontouchend = () => { 
                     content.style.transition = '0.2s'; 
-                    if(currentX < -32) content.style.transform = 'translateX(-64px)'; 
-                    else if(currentX > 32) content.style.transform = 'translateX(64px)'; 
+                    // 判斷右滑
+                    if(currentX > 32) content.style.transform = 'translateX(64px)'; 
                     else content.style.transform = 'translateX(0px)'; 
                     currentX = 0; 
                 };
@@ -351,7 +353,9 @@
             return wrapper;
         }
 
+        // delRec 保留給其他邏輯使用，但UI上已移除按鈕
         window.delRec = (d, i) => { if(confirm('確定刪除？')){ window.drinkDB[d].splice(i, 1); if(!window.drinkDB[d].length) delete window.drinkDB[d]; window.saveData(); } };
+        
         window.toggleSort = () => { sortOrder = sortOrder === 'desc' ? 'asc' : 'desc'; document.getElementById('sort-icon').className = sortOrder === 'desc' ? 'fas fa-sort-amount-down' : 'fas fa-sort-amount-up'; renderList(); };
         window.renderList = () => {
             const container = document.getElementById('list-items-container'); container.innerHTML = '';
@@ -387,7 +391,6 @@
         };
         window.switchListType = (t) => { 
             listType = t; 
-            // 修改按鈕樣式切換邏輯以適應 rounded-full
             document.getElementById('subtab-month').className = t === 'month' ? 'bg-white py-1.5 flex-1 rounded-full font-black shadow-sm text-xs transition-all' : 'text-gray-300 py-1.5 flex-1 rounded-full font-black text-xs transition-all';
             document.getElementById('subtab-year').className = t === 'year' ? 'bg-white py-1.5 flex-1 rounded-full font-black shadow-sm text-xs transition-all' : 'text-gray-300 py-1.5 flex-1 rounded-full font-black text-xs transition-all';
             renderList(); 
@@ -410,7 +413,7 @@
             else { m.classList.add('opacity-0'); c.classList.add('translate-y-full'); setTimeout(()=> m.classList.add('hidden'), 300); }
         }
 
-        const iceOpts = ['固定', '正常', '少冰', '微冰', '去冰', '熱'], sugarOpts = ['固定', '全糖', '少糖', '半糖', '微糖', '無糖'];
+        const iceOpts = ['固定', '正常', '少冰', '微冰', '去冰', '溫', '熱'], sugarOpts = ['固定', '全糖', '少糖', '半糖', '微糖', '一分糖', '無糖'];
         const mkChip = (t, type) => {
             const b = document.createElement('button'); b.className = 'chip-btn'; b.innerText = t;
             b.onclick = (e) => { 
