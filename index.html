@@ -8,15 +8,13 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
-        :root { --bg-color: #fdf6e3; --theme-color: #f87171; }
-        body { font-family: 'Noto Sans TC', sans-serif; background-color: var(--bg-color); color: #4a4a4a; transition: all 0.3s ease; }
+        :root { --bg-color: #fdf6e3; --theme-color: #f87171; --text-color: #4a4a4a; }
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: var(--bg-color); color: var(--text-color); transition: all 0.3s ease; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .calendar-grid { grid-template-columns: repeat(7, 1fr); display: grid; gap: 4px; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
         .day-cell { aspect-ratio: 1/1; border-radius: 12px; transition: all 0.2s; position: relative; border: 1px solid transparent; font-size: 14px; }
-        /* 修改點 5: 根據數量變深 (透過內聯樣式計算，此處定義基礎) */
         .day-cell.has-data { border: 1px solid color-mix(in srgb, var(--theme-color), transparent 60%); }
         .day-cell.today { border: 2px solid var(--theme-color); font-weight: bold; }
-        
         .chip-btn { border: 1px solid #e5e7eb; color: #6b7280; padding: 6px 14px; border-radius: 9999px; font-size: 12px; background: white; white-space: nowrap; }
         .chip-btn.selected { background-color: var(--theme-color); color: white; border-color: var(--theme-color); }
         .tab-btn { position: relative; padding: 12px 0; font-weight: 700; font-size: 18px; color: #9ca3af; flex: 1; text-align: center; }
@@ -24,17 +22,13 @@
         .tab-btn.active::after { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 30px; height: 3px; background-color: var(--theme-color); border-radius: 99px; }
         .bg-theme { background-color: var(--theme-color) !important; }
         .text-theme { color: var(--theme-color) !important; }
-        
-        /* 修改點 4: 調色板選中效果 */
         .swatch { width: 28px; height: 28px; border-radius: 8px; cursor: pointer; border: 2px solid white; box-shadow: 0 0 0 1px #e5e7eb; transition: transform 0.1s; }
-        .swatch:active { transform: scale(0.9); }
-        .swatch.active-target { outline: 3px solid var(--theme-color); outline-offset: 2px; }
+        .swatch.active-target { outline: 2px solid var(--theme-color); outline-offset: 2px; transform: scale(0.9); }
 
-        /* 修改點 2: 滑動雙向動作 */
         .swipe-item { position: relative; overflow: hidden; border-radius: 1rem; margin-bottom: 0.75rem; touch-action: pan-x; background: #f3f4f6; }
-        .swipe-content { position: relative; z-index: 10; background: white; transition: transform 0.2s ease-out; }
-        .swipe-action-delete { position: absolute; right: 0; top: 0; height: 100%; width: 80px; background: #ef4444; color: white; display: flex; align-items: center; justify-content: center; z-index: 5; font-size: 14px; font-weight: bold; border-radius: 0 1rem 1rem 0; }
-        .swipe-action-edit { position: absolute; left: 0; top: 0; height: 100%; width: 80px; background: #3b82f6; color: white; display: flex; align-items: center; justify-content: center; z-index: 5; font-size: 14px; font-weight: bold; border-radius: 1rem 0 0 1rem; }
+        .swipe-content { position: relative; z-index: 10; background: white; transition: transform 0.2s ease-out; color: var(--text-color); }
+        .swipe-action-delete { position: absolute; right: 0; top: 0; height: 100%; width: 80px; background: #ef4444; color: white; display: flex; align-items: center; justify-content: center; z-index: 5; font-size: 14px; font-weight: bold; border-radius: 0 1rem 1rem 0; cursor: pointer; }
+        .swipe-action-edit { position: absolute; left: 0; top: 0; height: 100%; width: 80px; background: #3b82f6; color: white; display: flex; align-items: center; justify-content: center; z-index: 5; font-size: 14px; font-weight: bold; border-radius: 1rem 0 0 1rem; cursor: pointer; }
 
         .loading-overlay { position: fixed; inset: 0; background: white; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s; }
     </style>
@@ -48,7 +42,7 @@
 
     <div class="flex-none p-4 pb-0 z-10">
         <div class="flex justify-between items-center mb-3">
-            <h1 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+            <h1 class="text-xl font-bold flex items-center gap-2">
                 <span class="bg-theme text-white p-1.5 rounded-lg w-10 h-10 flex items-center justify-center shadow-sm">
                     <i class="fas fa-heart text-xl"></i>
                 </span>
@@ -68,8 +62,8 @@
             </div>
             <div class="bg-white/80 backdrop-blur p-2 rounded-xl shadow-sm">
                 <div class="text-[9px] text-gray-400 font-bold mb-0.5">本月花費</div>
-                <div class="flex justify-between items-baseline"><span class="text-lg font-bold text-gray-700">$<span id="month-cost">0</span></span><span class="text-[10px] text-gray-400">元</span></div>
-                <div class="mt-1 pt-1 border-t border-gray-50 flex justify-between items-center"><span class="text-[9px] text-gray-400">年度花費</span><span class="text-xs font-bold text-gray-700">$<span id="year-cost">0</span></span></div>
+                <div class="flex justify-between items-baseline"><span class="text-lg font-bold" id="month-cost-container">$<span id="month-cost">0</span></span><span class="text-[10px] text-gray-400">元</span></div>
+                <div class="mt-1 pt-1 border-t border-gray-50 flex justify-between items-center"><span class="text-[9px] text-gray-400">年度花費</span><span class="text-xs font-bold">$<span id="year-cost">0</span></span></div>
             </div>
         </div>
 
@@ -82,7 +76,7 @@
     <div id="calendar-view-container" class="flex flex-col flex-grow overflow-hidden">
         <div class="flex-none px-4 py-2 flex items-center justify-between">
             <button onclick="changeMonth(-1)" class="w-8 h-8 text-gray-400"><i class="fas fa-chevron-left"></i></button>
-            <h2 class="text-md font-bold text-gray-700" id="current-month-display">2026年 1月</h2>
+            <h2 class="text-md font-bold" id="current-month-display">2026年 1月</h2>
             <button onclick="changeMonth(1)" class="w-8 h-8 text-gray-400"><i class="fas fa-chevron-right"></i></button>
         </div>
         <div class="flex-grow overflow-y-auto px-4 pb-24 no-scrollbar">
@@ -134,14 +128,14 @@
             </div>
             <div class="p-5 overflow-y-auto space-y-4 no-scrollbar">
                 <div class="grid grid-cols-2 gap-4">
-                    <div class="flex flex-col gap-1"><label class="text-[10px] font-bold text-gray-400 tracking-wider">店名</label><input type="text" id="input-shop" class="bg-gray-50 border-b-2 border-gray-200 p-2 outline-none focus:border-theme" placeholder="例如：五十嵐"></div>
-                    <div class="flex flex-col gap-1"><label class="text-[10px] font-bold text-gray-400 tracking-wider">品項</label><input type="text" id="input-item" class="bg-gray-50 border-b-2 border-gray-200 p-2 outline-none focus:border-theme" placeholder="例如：珍珠奶茶"></div>
+                    <div class="flex flex-col gap-1"><label class="text-[10px] font-bold text-gray-400 tracking-wider">店名</label><input type="text" id="input-shop" class="bg-gray-50 border-b-2 border-gray-200 p-2 outline-none focus:border-theme text-gray-700" placeholder="例如：五十嵐"></div>
+                    <div class="flex flex-col gap-1"><label class="text-[10px] font-bold text-gray-400 tracking-wider">品項</label><input type="text" id="input-item" class="bg-gray-50 border-b-2 border-gray-200 p-2 outline-none focus:border-theme text-gray-700" placeholder="例如：珍珠奶茶"></div>
                 </div>
-                <div class="w-1/3"><label class="text-[10px] font-bold text-gray-400 tracking-wider">價格</label><input type="number" id="input-price" class="w-full bg-gray-50 border-b-2 border-gray-200 p-2 font-bold outline-none focus:border-theme" placeholder="$"></div>
+                <div class="w-1/3"><label class="text-[10px] font-bold text-gray-400 tracking-wider">價格</label><input type="number" id="input-price" class="w-full bg-gray-50 border-b-2 border-gray-200 p-2 font-bold outline-none focus:border-theme text-gray-700" placeholder="$"></div>
                 <div>
                     <label class="text-xs font-bold text-gray-400 mb-2 block">冰塊</label><div class="flex flex-wrap gap-2 mb-4" id="ice-options"></div>
                     <label class="text-xs font-bold text-gray-400 mb-2 block">甜度</label><div class="flex flex-wrap gap-2 mb-4" id="sugar-options"></div>
-                    <label class="text-xs font-bold text-gray-400 mb-2 block">備註</label><textarea id="input-note" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 outline-none text-sm" rows="3" placeholder="心情或口味筆記..."></textarea>
+                    <label class="text-xs font-bold text-gray-400 mb-2 block">備註</label><textarea id="input-note" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 outline-none text-sm text-gray-700" rows="3" placeholder="心情或口味筆記..."></textarea>
                 </div>
             </div>
             <div class="p-4 border-t flex gap-3 bg-white">
@@ -155,16 +149,17 @@
         <div class="absolute right-4 top-16 bg-white rounded-2xl shadow-xl w-72 overflow-hidden">
             <div class="p-4 border-b bg-gray-50">
                 <p class="text-[10px] text-gray-400 font-bold mb-1">同步代碼</p>
-                <div class="flex gap-2"><input type="text" id="user-uid" readonly class="flex-1 bg-white border p-2 rounded text-[10px] font-mono"><button onclick="copyUID()" class="bg-gray-200 px-2 rounded text-[10px]">複製</button></div>
+                <div class="flex gap-2"><input type="text" id="user-uid" readonly class="flex-1 bg-white border p-2 rounded text-[10px] font-mono text-gray-700"><button onclick="copyUID()" class="bg-gray-200 px-2 rounded text-[10px] text-gray-700">複製</button></div>
             </div>
             <div class="p-4 border-b">
-                <div class="flex gap-2 mb-3">
-                    <button id="target-theme" onclick="setColorTarget('theme')" class="flex-1 py-1 border-2 border-theme rounded text-[10px] font-bold">主題色</button>
-                    <button id="target-bg" onclick="setColorTarget('bg')" class="flex-1 py-1 border-2 border-transparent rounded text-[10px] font-bold">背景色</button>
+                <div class="flex flex-wrap gap-1 mb-3 bg-gray-100 p-1 rounded-lg">
+                    <button id="target-theme" onclick="setColorTarget('theme')" class="flex-1 py-1 rounded text-[9px] font-bold">主題色</button>
+                    <button id="target-bg" onclick="setColorTarget('bg')" class="flex-1 py-1 rounded text-[9px] font-bold">背景色</button>
+                    <button id="target-text" onclick="setColorTarget('text')" class="flex-1 py-1 rounded text-[9px] font-bold">字體色</button>
                 </div>
-                <div class="flex flex-wrap gap-2" id="color-palette"></div>
+                <div class="flex flex-wrap gap-2 justify-center" id="color-palette"></div>
             </div>
-            <div class="p-4"><input type="text" id="import-uid" class="w-full bg-gray-100 p-2 text-xs rounded mb-2" placeholder="輸入同步代碼"><button onclick="switchUser()" class="w-full bg-theme text-white py-2 rounded text-xs font-bold shadow-md active:scale-95 transition-all">立即同步</button></div>
+            <div class="p-4"><input type="text" id="import-uid" class="w-full bg-gray-100 p-2 text-xs rounded mb-2 text-gray-700" placeholder="輸入同步代碼"><button onclick="switchUser()" class="w-full bg-theme text-white py-2 rounded text-xs font-bold shadow-md active:scale-95 transition-all">立即同步</button></div>
         </div>
     </div>
 
@@ -188,7 +183,7 @@
         const appId = 'drink-diary-2026';
 
         window.drinkDB = {};
-        window.userSettings = { bgColor: '#fdf6e3', themeColor: '#f87171' };
+        window.userSettings = { bgColor: '#fdf6e3', themeColor: '#f87171', textColor: '#4a4a4a' };
         window.currentUser = null;
         let unsubscribeSync = null;
         let colorTarget = 'theme';
@@ -209,6 +204,8 @@
                     const data = snap.data();
                     window.drinkDB = data.records || {};
                     window.userSettings = data.settings || window.userSettings;
+                    // 確保舊版本資料也有 textColor
+                    if(!window.userSettings.textColor) window.userSettings.textColor = '#4a4a4a';
                 }
                 window.applyTheme();
                 renderAll();
@@ -237,7 +234,7 @@
         const YEAR = 2026;
         const iceOpts = ['固定', '正常', '少冰', '微冰', '去冰', '常溫', '熱'];
         const sugarOpts = ['固定', '全糖', '少糖', '半糖', '微糖', '一分糖', '無糖'];
-        const colors = ['#f87171','#60a5fa','#34d399','#91a3b0','#b4c4d1','#d8a7b1','#af9483','#a3b18a','#84a59d','#9d8189','#4a4e69','#fdf6e3','#ffffff'];
+        const colors = ['#f87171','#60a5fa','#34d399','#91a3b0','#b4c4d1','#d8a7b1','#af9483','#a3b18a','#84a59d','#9d8189','#4a4e69','#1a1a1a','#4a4a4a','#fdf6e3','#ffffff'];
 
         let currentMonth = new Date().getMonth();
         let currentViewingDate = '';
@@ -249,14 +246,27 @@
         window.applyTheme = () => {
             document.documentElement.style.setProperty('--bg-color', window.userSettings.bgColor);
             document.documentElement.style.setProperty('--theme-color', window.userSettings.themeColor);
+            document.documentElement.style.setProperty('--text-color', window.userSettings.textColor);
             document.body.style.backgroundColor = window.userSettings.bgColor;
-            document.getElementById('target-theme').style.borderColor = colorTarget === 'theme' ? window.userSettings.themeColor : 'transparent';
-            document.getElementById('target-bg').style.borderColor = colorTarget === 'bg' ? window.userSettings.themeColor : 'transparent';
+            document.body.style.color = window.userSettings.textColor;
             
-            // 修改點 4: 同步調色板的高亮
+            // 更新按鈕外觀
+            ['theme', 'bg', 'text'].forEach(t => {
+                const btn = document.getElementById(`target-${t}`);
+                if(colorTarget === t) {
+                    btn.style.backgroundColor = window.userSettings.themeColor;
+                    btn.style.color = 'white';
+                } else {
+                    btn.style.backgroundColor = 'transparent';
+                    btn.style.color = '#9ca3af';
+                }
+            });
+
+            // 更新調色板選中狀態
+            const currentVal = colorTarget === 'theme' ? window.userSettings.themeColor : 
+                             (colorTarget === 'bg' ? window.userSettings.bgColor : window.userSettings.textColor);
             document.querySelectorAll('.swatch').forEach(s => {
-                const isMatch = s.style.backgroundColor === (colorTarget === 'theme' ? window.userSettings.themeColor : window.userSettings.bgColor);
-                s.classList.toggle('active-target', isMatch);
+                s.classList.toggle('active-target', s.getAttribute('data-color') === currentVal);
             });
         };
 
@@ -265,7 +275,9 @@
             updateStats();
             renderCalendar();
             renderList();
-            if(!document.getElementById('day-detail-modal').classList.contains('hidden')) renderDayDetail(currentViewingDate);
+            // 防止背景刷新導致正在編輯的表單跳轉
+            const isModalOpen = !document.getElementById('day-detail-modal').classList.contains('hidden');
+            if(isModalOpen && editingIdx === null) renderDayDetail(currentViewingDate);
         };
 
         function renderCalendar() {
@@ -280,20 +292,18 @@
                 const records = window.drinkDB[ds] || [];
                 const cell = document.createElement('div');
                 
-                // 修改點 5: 根據數量變深 (熱力圖邏輯)
                 let opacity = 10;
                 if(records.length > 0) opacity = Math.min(15 + (records.length * 20), 90);
                 
                 cell.className = `day-cell flex flex-col items-center justify-center cursor-pointer ${ds === todayStr ? 'today' : ''} ${records.length > 0 ? 'has-data' : ''}`;
                 if(records.length > 0) {
                     cell.style.backgroundColor = `color-mix(in srgb, var(--theme-color), transparent ${100 - opacity}%)`;
-                    cell.innerHTML = `<span class="text-[10px] font-bold text-gray-700">${d}</span><span>🥤</span>`;
+                    cell.innerHTML = `<span class="text-[10px] font-bold">${d}</span><span>🥤</span>`;
                 } else {
                     cell.className += ' bg-white/40';
-                    cell.innerHTML = `<span class="text-sm text-gray-400">${d}</span>`;
+                    cell.innerHTML = `<span class="text-sm opacity-40">${d}</span>`;
                 }
                 
-                // 修改點 6: 點擊邏輯切換
                 cell.onclick = () => {
                     if(records.length > 0) showDayDetail(ds);
                     else openEntryForm(ds);
@@ -302,31 +312,30 @@
             }
         }
 
-        // 萬能滑動生成器 - 修改點 2: 雙向滑動
-        function createSwipeItem(record, date, idx, isDetailView) {
+        function createSwipeItem(record, date, idx, canEditDirectly) {
             const wrapper = document.createElement('div');
             wrapper.className = 'swipe-item';
             wrapper.innerHTML = `
-                <div class="swipe-action-delete"><i class="fas fa-trash"></i></div>
-                <div class="swipe-action-edit"><i class="fas fa-edit"></i></div>
+                <div class="swipe-action-delete" onclick="event.stopPropagation()">刪除</div>
+                <div class="swipe-action-edit" onclick="event.stopPropagation()">修正</div>
             `;
             
             const content = document.createElement('div');
-            content.className = 'swipe-content p-4 border-b flex justify-between items-center bg-white cursor-pointer';
+            content.className = 'swipe-content p-4 border-b flex justify-between items-center bg-white';
             const displayDate = date.replace(/-/g, '/');
             
-            // 修改點 3: 顯示心情 (當月明細)
+            // 當月明細顯示小號粗體備註
             const noteHtml = (listType === 'month' && record.note) ? 
-                `<div class="text-[10px] font-bold text-gray-500 mt-1 bg-gray-50 p-1 rounded italic-none">“ ${record.note} ”</div>` : '';
+                `<div class="text-[10px] font-bold opacity-70 mt-1"># ${record.note}</div>` : '';
 
             content.innerHTML = `
-                <div class="flex-1">
-                    <div class="text-[10px] text-gray-400 font-bold mb-1">${displayDate}</div>
-                    <div class="font-bold text-gray-700">${record.shop} · ${record.item}</div>
-                    <div class="text-[10px] text-gray-400 mt-0.5">${record.ice} / ${record.sugar}</div>
+                <div class="pointer-events-none">
+                    <div class="text-[10px] opacity-40 font-bold mb-1">${displayDate}</div>
+                    <div class="font-bold">${record.shop} · ${record.item}</div>
+                    <div class="text-[10px] opacity-50 mt-0.5">${record.ice} / ${record.sugar}</div>
                     ${noteHtml}
                 </div>
-                <div class="text-lg font-bold text-theme ml-2">$${record.price}</div>
+                <div class="text-lg font-bold text-theme">$${record.price}</div>
             `;
             
             let startX = 0, currentX = 0, isDragging = false;
@@ -334,20 +343,16 @@
             const onMove = (e) => {
                 if(!isDragging) return;
                 currentX = (e.type.includes('mouse') ? e.pageX : e.touches[0].pageX) - startX;
-                // 限制滑動範圍
                 if(currentX < -100) currentX = -100; if(currentX > 100) currentX = 100;
                 content.style.transform = `translateX(${currentX}px)`;
             };
             const onEnd = () => {
                 isDragging = false; content.style.transition = 'transform 0.2s ease-out';
-                if(currentX < -50) {
-                    content.style.transform = 'translateX(-80px)';
-                } else if (currentX > 50) {
-                    content.style.transform = 'translateX(80px)';
-                } else {
+                if(currentX < -50) content.style.transform = 'translateX(-80px)';
+                else if(currentX > 50) content.style.transform = 'translateX(80px)';
+                else {
                     content.style.transform = 'translateX(0px)';
-                    // 修改點 1: 僅在日曆詳情內點擊可開啟修改 (或在清單內右滑)
-                    if(currentX === 0 && isDetailView) openEntryForm(date, idx);
+                    if(currentX === 0 && canEditDirectly) openEntryForm(date, idx);
                 }
                 currentX = 0;
             };
@@ -355,11 +360,13 @@
             content.addEventListener('touchstart', onStart); content.addEventListener('touchmove', onMove); content.addEventListener('touchend', onEnd);
             content.addEventListener('mousedown', onStart); content.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onEnd);
             
-            wrapper.querySelector('.swipe-action-delete').onclick = () => {
+            wrapper.querySelector('.swipe-action-delete').onclick = (e) => {
+                e.stopPropagation();
                 window.drinkDB[date].splice(idx, 1); if(window.drinkDB[date].length === 0) delete window.drinkDB[date];
                 window.saveData(); renderAll();
             };
-            wrapper.querySelector('.swipe-action-edit').onclick = () => {
+            wrapper.querySelector('.swipe-action-edit').onclick = (e) => {
+                e.stopPropagation();
                 openEntryForm(date, idx);
                 content.style.transform = 'translateX(0px)';
             };
@@ -376,7 +383,6 @@
                 window.drinkDB[d].forEach((r, idx) => all.push({...r, date: d, idx}));
             });
             all.sort((a, b) => sortOrder === 'desc' ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date));
-            // 清單模式下 isDetailView 為 false
             all.forEach(r => container.appendChild(createSwipeItem(r, r.date, r.idx, false)));
         }
 
@@ -390,10 +396,7 @@
         function renderDayDetail(ds) {
             const list = document.getElementById('day-records-list'); list.innerHTML = '';
             const records = window.drinkDB[ds] || [];
-            if(records.length === 0) {
-                list.innerHTML = `<p class="text-center text-gray-300 py-10 text-sm">今日無紀錄</p>`;
-            }
-            // 日曆詳情內 isDetailView 為 true
+            if(records.length === 0) list.innerHTML = `<p class="text-center text-gray-300 py-10 text-sm">今日無紀錄</p>`;
             records.forEach((r, idx) => list.appendChild(createSwipeItem(r, ds, idx, true)));
         }
 
@@ -407,9 +410,7 @@
                 document.getElementById('input-price').value = r.price; document.getElementById('input-note').value = r.note || '';
                 selectedIce = r.ice; selectedSugar = r.sugar;
                 updateChips('ice-options', r.ice); updateChips('sugar-options', r.sugar);
-            } else {
-                clearForm();
-            }
+            } else clearForm();
             toggleModal('entry-modal', true);
         };
 
@@ -422,17 +423,28 @@
             const data = { shop, item, price, ice: selectedIce, sugar: selectedSugar, note: document.getElementById('input-note').value };
             if(editingIdx !== null) window.drinkDB[currentViewingDate][editingIdx] = data;
             else window.drinkDB[currentViewingDate].push(data);
-            window.saveData(); closeEntryModal();
+            window.saveData(); 
+            closeEntryModal();
         };
 
-        window.setColorTarget = (t) => { colorTarget = t; window.applyTheme(); };
+        window.setColorTarget = (t) => { 
+            colorTarget = t; 
+            window.applyTheme(); 
+        };
+
         const palette = document.getElementById('color-palette');
         colors.forEach(c => {
-            const d = document.createElement('div'); d.className = 'swatch'; d.style.backgroundColor = c;
-            d.onclick = () => {
+            const d = document.createElement('div'); 
+            d.className = 'swatch'; 
+            d.style.backgroundColor = c;
+            d.setAttribute('data-color', c);
+            d.onclick = (e) => {
+                e.stopPropagation();
                 if(colorTarget === 'theme') window.userSettings.themeColor = c;
-                else window.userSettings.bgColor = c;
-                window.applyTheme(); window.saveData();
+                else if(colorTarget === 'bg') window.userSettings.bgColor = c;
+                else window.userSettings.textColor = c;
+                window.applyTheme(); 
+                window.saveData();
             };
             palette.appendChild(d);
         });
@@ -442,7 +454,10 @@
         window.copyUID = () => { navigator.clipboard.writeText(document.getElementById('user-uid').value); alert('已複製'); };
         window.changeMonth = (d) => { currentMonth = (currentMonth+d+12)%12; renderAll(); };
         window.openQuickAdd = () => openEntryForm(new Date().toISOString().split('T')[0]);
-        window.closeEntryModal = () => toggleModal('entry-modal', false);
+        window.closeEntryModal = () => {
+            editingIdx = null; // 關鍵修復：關閉時清空編輯狀態
+            toggleModal('entry-modal', false);
+        };
         window.closeDayDetail = () => toggleModal('day-detail-modal', false);
         window.toggleSort = () => { sortOrder = sortOrder === 'desc' ? 'asc' : 'desc'; document.getElementById('sort-icon').className = sortOrder === 'desc' ? 'fas fa-sort-amount-down' : 'fas fa-sort-amount-up'; renderList(); };
         window.clearForm = () => { 
