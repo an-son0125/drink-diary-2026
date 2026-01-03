@@ -336,8 +336,9 @@
         function updateChips(id, val) { Array.from(document.getElementById(id).children).forEach(c => c.classList.toggle('selected', c.innerText === val)); }
         function toggleModal(id, show) { const m = document.getElementById(id), c = document.getElementById(id + '-content'); if(show) { m.classList.remove('hidden'); setTimeout(()=> { m.classList.remove('opacity-0'); if(c) c.classList.remove('translate-y-full'); }, 10); } else { m.classList.add('opacity-0'); if(c) c.classList.add('translate-y-full'); setTimeout(()=> m.classList.add('hidden'), 300); } }
         const mkChip = (t, type) => { const b = document.createElement('button'); b.className = 'chip-btn'; b.innerText = t; b.onclick = (e) => { Array.from(e.target.parentElement.children).forEach(c=>c.classList.remove('selected')); e.target.classList.add('selected'); if(type==='ice') selectedIce=t; else selectedSugar=t; }; return b; };
-        ['固定', '正常', '少冰', '微冰', '去冰', '熱'].forEach(o => document.getElementById('ice-options').appendChild(mkChip(o, 'ice')));
-        ['固定', '全糖', '少糖', '半糖', '微糖', '無糖'].forEach(o => document.getElementById('sugar-options').appendChild(mkChip(o, 'sugar')));
+        ['固定', '正常', '少冰', '微冰', '去冰', '溫', '熱'].forEach(o => document.getElementById('ice-options').appendChild(mkChip(o, 'ice')));
+        ['固定', '全糖', '少糖', '半糖', '微糖', '一分糖', '無糖'].forEach(o => document.getElementById('sugar-options').appendChild(mkChip(o, 'sugar')));
     </script>
 </body>
 </html>
+
