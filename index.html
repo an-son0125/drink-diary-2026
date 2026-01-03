@@ -6,339 +6,496 @@
     <title>2026 翊維飲料日記</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // 環境變數防錯處理：如果部署環境沒有定義，則使用空物件
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'yi-wei-drink-2026';
+        const initialToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        window.drinkDB = {};
+        window.userSettings = { bgColor: '#fdf6e3', themeColor: '#f87171' };
+        window.currentUser = null;
+
+        // 初始化 Firebase
+        if (firebaseConfig) {
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            const db = getFirestore(app);
+
+            const initAuth = async () => {
+                try {
+                    if (initialToken) {
+                        await signInWithCustomToken(auth, initialToken);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                } catch (error) {
+                    console.error("Auth Error:", error);
+                }
+            };
+
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    window.currentUser = user;
+                    const userDocRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'mainData');
+                    
+                    onSnapshot(userDocRef, (docSnap) => {
+                        if (docSnap.exists()) {
+                            const data = docSnap.data();
+                            window.drinkDB = data.records || {};
+                            if(data.settings) {
+                                window.userSettings = data.settings;
+                                window.applyTheme();
+                            }
+                        }
+                        window.renderAll();
+                    }, (err) => {
+                        console.error("Firestore Sync Error:", err);
+                        window.renderAll(); // 發生錯誤也要渲染
+                    });
+                }
+            });
+
+            window.saveToCloud = async () => {
+                if (!window.currentUser) return;
+                const userDocRef = doc(db, 'artifacts', appId, 'users', window.currentUser.uid, 'settings', 'mainData');
+                try {
+                    await setDoc(userDocRef, { 
+                        records: window.drinkDB,
+                        settings: window.userSettings
+                    }, { merge: true });
+                } catch (e) {
+                    console.error("Save Error:", e);
+                }
+            };
+
+            initAuth();
+        } else {
+            console.warn("Firebase config not found. Running in local mode.");
+            // 本地開發模式支援 (localStorage)
+            const localData = localStorage.getItem('drink_diary_local');
+            if (localData) window.drinkDB = JSON.parse(localData);
+            window.saveToCloud = () => {
+                localStorage.setItem('drink_diary_local', JSON.stringify(window.drinkDB));
+                window.renderAll();
+            };
+            setTimeout(() => window.renderAll(), 100);
+        }
+    </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
         :root { --bg-color: #fdf6e3; --theme-color: #f87171; }
-        body { font-family: 'Noto Sans TC', sans-serif; background-color: var(--bg-color); color: #4a4a4a; transition: background-color 0.3s ease; margin: 0; padding: 0; }
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: var(--bg-color); color: #4a4a4a; transition: background-color 0.3s ease; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-        .day-cell { aspect-ratio: 1/1; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 13px; position: relative; background: rgba(255,255,255,0.4); border: 1px solid transparent; }
-        .day-cell.today { border: 2px solid var(--theme-color); font-weight: bold; }
-        .day-cell.has-data { background-color: color-mix(in srgb, var(--theme-color), transparent 70%); border-color: var(--theme-color); }
-        .tab-btn { flex: 1; text-align: center; padding: 12px; font-weight: bold; color: #9ca3af; cursor: pointer; }
-        .tab-btn.active { color: var(--theme-color); border-bottom: 3px solid var(--theme-color); }
-        .chip-btn { border: 1px solid #e5e7eb; padding: 6px 12px; border-radius: 20px; font-size: 12px; background: white; }
-        .chip-btn.selected { background: var(--theme-color); color: white; border-color: var(--theme-color); }
-        .star-rating i { cursor: pointer; color: #d1d5db; margin: 0 2px; }
+        .day-cell { aspect-ratio: 1/1; border-radius: 12px; transition: all 0.2s; position: relative; border: 1px solid transparent; font-size: 14px; }
+        
+        .day-cell.has-data { background-color: color-mix(in srgb, var(--theme-color), transparent 75%); border: 1px solid color-mix(in srgb, var(--theme-color), transparent 60%); }
+        .day-cell.multi-cups { background-color: color-mix(in srgb, var(--theme-color), transparent 55%); border: 1px solid var(--theme-color); }
+        .day-cell.heavy-cups { background-color: color-mix(in srgb, var(--theme-color), transparent 30%); border: 2px solid var(--theme-color); }
+        .day-cell.today { border: 2px solid var(--theme-color); }
+
+        .chip-btn { border: 1px solid #e5e7eb; color: #6b7280; padding: 6px 14px; border-radius: 9999px; font-size: 12px; background: white; white-space: nowrap; }
+        .chip-btn.selected { background-color: var(--theme-color); color: white; border-color: var(--theme-color); }
+        .star-rating i { cursor: pointer; color: #d1d5db; }
         .star-rating i.active { color: #fbbf24; }
-        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: flex-end; justify-content: center; z-index: 100; }
-        .modal-content { background: white; width: 100%; max-width: 500px; border-radius: 20px 20px 0 0; padding: 20px; max-height: 90vh; overflow-y: auto; }
+        .tab-btn { position: relative; padding: 12px 0; font-weight: 700; font-size: 18px; color: #9ca3af; flex: 1; text-align: center; }
+        .tab-btn.active { color: var(--theme-color); }
+        .tab-btn.active::after { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 30px; height: 3px; background-color: var(--theme-color); border-radius: 99px; }
+        .bg-theme { background-color: var(--theme-color) !important; }
+        .text-theme { color: var(--theme-color) !important; }
+        .swatch { width: 28px; height: 28px; border-radius: 8px; cursor: pointer; border: 2px solid white; box-shadow: 0 0 0 1px #e5e7eb; }
+
+        .swipe-container { position: relative; overflow: hidden; border-radius: 1rem; margin-bottom: 0.75rem; width: 100%; }
+        .swipe-content { position: relative; z-index: 10; transition: transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28); background: white; cursor: pointer; width: 100%; }
+        .swipe-action { position: absolute; top: 0; right: 0; height: 100%; width: 80px; background-color: #ef4444; color: white; display: flex; align-items: center; justify-content: center; z-index: 5; border-radius: 0 1rem 1rem 0; font-weight: bold; }
     </style>
 </head>
-<body class="flex flex-col h-screen overflow-hidden">
+<body class="h-[100dvh] flex flex-col overflow-hidden">
 
-    <!-- Header Stats -->
-    <div class="p-4 bg-white/50 backdrop-blur-md">
-        <div class="flex justify-between items-center mb-4">
-            <h1 class="text-xl font-bold flex items-center gap-2">
-                <span class="bg-red-400 text-white p-2 rounded-lg"><i class="fas fa-mug-hot"></i></span>
-                2026 飲料日記
+    <div class="flex-none p-4 pb-0 z-10">
+        <div class="flex justify-between items-center mb-3">
+            <h1 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <span class="bg-theme text-white p-1.5 rounded-lg w-10 h-10 flex items-center justify-center shadow-sm">
+                    <i class="fas fa-heart text-xl"></i>
+                </span>
+                <div class="flex flex-col">
+                    <span class="leading-tight">2026 翊維飲料日記</span>
+                    <span class="text-[9px] text-blue-500 font-bold uppercase tracking-widest">Drink Diary 2026</span>
+                </div>
             </h1>
-            <div class="text-xs font-bold text-gray-400" id="connection-status">離線模式</div>
+            <button onclick="toggleSettings()" class="w-9 h-9 rounded-full bg-white shadow-sm flex items-center justify-center text-gray-400"><i class="fas fa-cog"></i></button>
         </div>
-        <div class="grid grid-cols-2 gap-3">
-            <div class="bg-white p-3 rounded-xl shadow-sm border border-orange-100">
-                <div class="text-[10px] text-gray-400 uppercase">本月杯數</div>
-                <div class="text-xl font-bold text-red-400" id="stat-month-count">0</div>
+
+        <div class="grid grid-cols-2 gap-2 mb-3">
+            <div class="bg-white/80 backdrop-blur p-2 rounded-xl border border-white/50 shadow-sm">
+                <div class="text-[9px] text-gray-400 font-bold tracking-wider mb-0.5">本月杯數</div>
+                <div class="flex justify-between items-baseline">
+                    <span class="text-lg font-bold text-theme" id="month-cups">0</span>
+                    <span class="text-[10px] text-gray-400">Cups</span>
+                </div>
+                <div class="mt-1 pt-1 border-t border-gray-50 flex justify-between items-center">
+                    <span class="text-[9px] text-gray-400 font-bold">本月總額</span>
+                    <span class="text-sm font-bold text-gray-700">$<span id="month-cost">0</span></span>
+                </div>
             </div>
-            <div class="bg-white p-3 rounded-xl shadow-sm border border-orange-100">
-                <div class="text-[10px] text-gray-400 uppercase">本月花費</div>
-                <div class="text-xl font-bold text-gray-700">$<span id="stat-month-cost">0</span></div>
+            <div class="bg-white/80 backdrop-blur p-2 rounded-xl border border-white/50 shadow-sm">
+                <div class="text-[9px] text-gray-400 font-bold tracking-wider mb-0.5">年度累積</div>
+                <div class="flex justify-between items-baseline">
+                    <span class="text-lg font-bold text-blue-500" id="year-cups">0</span>
+                    <span class="text-[10px] text-gray-400">Total</span>
+                </div>
+                <div class="mt-1 pt-1 border-t border-gray-50 flex justify-between items-center">
+                    <span class="text-[9px] text-gray-400 font-bold">年度總額</span>
+                    <span class="text-sm font-bold text-gray-700">$<span id="year-cost">0</span></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex border-b border-gray-100">
+            <button onclick="switchView('calendar')" id="tab-calendar" class="tab-btn active text-2xl">🥤</button>
+            <button onclick="switchView('list')" id="tab-list" class="tab-btn">清單</button>
+        </div>
+    </div>
+
+    <div id="calendar-view-container" class="flex flex-col flex-grow overflow-hidden">
+        <div class="flex-none px-4 py-2 flex items-center justify-between">
+            <button onclick="changeMonth(-1)" class="w-8 h-8 text-gray-400"><i class="fas fa-chevron-left"></i></button>
+            <h2 class="text-md font-bold text-gray-700" id="current-month-display">2026年 1月</h2>
+            <button onclick="changeMonth(1)" class="w-8 h-8 text-gray-400"><i class="fas fa-chevron-right"></i></button>
+        </div>
+        <div class="flex-grow overflow-y-auto px-4 pb-24 no-scrollbar">
+            <div class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 mb-4">
+                <div class="grid grid-cols-7 gap-1 mb-2 text-center text-[10px] text-gray-300 font-bold">
+                    <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
+                </div>
+                <div class="calendar-grid" id="calendar-grid"></div>
             </div>
         </div>
     </div>
 
-    <!-- Navigation -->
-    <div class="flex border-b">
-        <div class="tab-btn active" id="tab-cal" onclick="switchTab('calendar')">日曆視圖</div>
-        <div class="tab-btn" id="tab-list" onclick="switchTab('list')">歷史清單</div>
-    </div>
-
-    <!-- Content -->
-    <div class="flex-grow overflow-y-auto p-4 pb-24" id="main-content">
-        <div id="calendar-view">
-            <div class="flex justify-between items-center mb-4">
-                <button onclick="changeMonth(-1)" class="p-2 text-gray-400"><i class="fas fa-chevron-left"></i></button>
-                <div class="font-bold text-lg" id="month-label">2026年 1月</div>
-                <button onclick="changeMonth(1)" class="p-2 text-gray-400"><i class="fas fa-chevron-right"></i></button>
+    <div id="list-view-container" class="hidden flex-col flex-grow overflow-hidden">
+        <div class="flex-none px-4 py-3">
+            <div class="bg-gray-200/50 p-1 rounded-xl flex gap-1 text-[10px]">
+                <button onclick="switchListType('month')" id="subtab-month" class="bg-white text-theme shadow-sm py-2 flex-1 rounded-lg font-bold">當月明細</button>
+                <button onclick="switchListType('year')" id="subtab-year" class="text-gray-400 py-2 flex-1 rounded-lg font-bold">全年度</button>
+                <button onclick="switchListType('favorite')" id="subtab-favorite" class="text-gray-400 py-2 flex-1 rounded-lg font-bold">喜愛</button>
             </div>
-            <div class="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-gray-300 mb-2">
-                <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
-            </div>
-            <div class="calendar-grid" id="calendar-grid"></div>
         </div>
-        <div id="list-view" class="hidden space-y-3"></div>
+        <div class="flex-grow overflow-y-auto px-4 pb-24 no-scrollbar" id="list-items-container"></div>
     </div>
 
-    <!-- Quick Add Button -->
-    <button onclick="openForm()" class="fixed bottom-6 right-6 w-14 h-14 bg-red-400 text-white rounded-full shadow-lg flex items-center justify-center text-xl z-50">
+    <button onclick="openQuickAdd()" class="fixed bottom-6 right-6 w-14 h-14 bg-theme text-white rounded-full flex items-center justify-center text-2xl z-40 shadow-lg active:scale-90 transition-transform">
         <i class="fas fa-plus"></i>
     </button>
 
-    <!-- Entry Modal -->
-    <div id="entry-modal" class="modal" onclick="if(event.target===this) closeModal()">
-        <div class="modal-content">
-            <div class="flex justify-between items-center mb-6">
-                <h3 class="font-bold text-lg" id="form-title">新增紀錄</h3>
-                <button onclick="closeModal()" class="text-gray-400"><i class="fas fa-times"></i></button>
+    <!-- Modals -->
+    <div id="day-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-end sm:items-center justify-center z-50 transition-opacity opacity-0" onclick="if(event.target === this) closeDayModal()">
+        <div class="bg-white w-full sm:w-[450px] sm:rounded-2xl rounded-t-2xl max-h-[80vh] flex flex-col shadow-2xl transform transition-transform translate-y-full" id="day-modal-content">
+            <div class="p-4 border-b flex justify-between items-center bg-gray-50">
+                <span class="font-bold text-lg text-gray-700" id="day-modal-title">日期</span>
+                <button onclick="closeDayModal()" class="text-gray-400 w-8 h-8"><i class="fas fa-times"></i></button>
             </div>
-            <div class="space-y-4">
-                <input type="text" id="in-shop" class="w-full p-3 bg-gray-50 rounded-xl outline-none border border-transparent focus:border-red-400" placeholder="店名 (例: 可不可)">
-                <input type="text" id="in-item" class="w-full p-3 bg-gray-50 rounded-xl outline-none border border-transparent focus:border-red-400" placeholder="品項 (例: 熟成紅茶)">
-                <input type="number" id="in-price" class="w-full p-3 bg-gray-50 rounded-xl outline-none border border-transparent focus:border-red-400" placeholder="金額">
-                
-                <div>
-                    <div class="text-xs font-bold text-gray-400 mb-2">冰塊甜度</div>
-                    <div class="flex flex-wrap gap-2 mb-2" id="ice-chips"></div>
-                    <div class="flex flex-wrap gap-2" id="sugar-chips"></div>
-                </div>
-
-                <div>
-                    <div class="text-xs font-bold text-gray-400 mb-2">評分</div>
-                    <div class="star-rating text-2xl" id="star-rating">
-                        <i class="fas fa-star" onclick="setRating(1)"></i>
-                        <i class="fas fa-star" onclick="setRating(2)"></i>
-                        <i class="fas fa-star" onclick="setRating(3)"></i>
-                        <i class="fas fa-star" onclick="setRating(4)"></i>
-                        <i class="fas fa-star" onclick="setRating(5)"></i>
-                    </div>
-                </div>
-                
-                <button onclick="saveEntry()" class="w-full bg-red-400 text-white font-bold py-4 rounded-xl shadow-md mt-4">確認儲存</button>
+            <div class="p-4 overflow-y-auto space-y-3" id="day-records-list"></div>
+            <div class="p-4 border-t">
+                <button onclick="openEntryForm(currentViewingDate)" class="w-full bg-theme text-white font-bold py-3 rounded-xl shadow-md flex items-center justify-center gap-2">
+                    <i class="fas fa-plus"></i> 新增一杯
+                </button>
             </div>
         </div>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // 全域變數
-        window.drinkData = JSON.parse(localStorage.getItem('yiwei_drinks_2026')) || {};
-        window.currentMonth = new Date().getMonth(); 
-        window.selectedDate = '';
-        window.selectedIce = '';
-        window.selectedSugar = '';
-        window.selectedRating = 0;
-
-        // Firebase 安全檢查
-        let db = null;
-        let auth = null;
-        const configStr = typeof __firebase_config !== 'undefined' ? __firebase_config : null;
-
-        if (configStr) {
-            try {
-                const app = initializeApp(JSON.parse(configStr));
-                auth = getAuth(app);
-                db = getFirestore(app);
-                document.getElementById('connection-status').innerText = '雲端同步中';
-                
-                signInAnonymously(auth).then(() => {
-                    onAuthStateChanged(auth, (user) => {
-                        if (user) {
-                            const appId = typeof __app_id !== 'undefined' ? __app_id : 'yi-wei-2026';
-                            onSnapshot(doc(db, 'artifacts', appId, 'users', user.uid, 'data', 'drinks'), (s) => {
-                                if (s.exists()) {
-                                    window.drinkData = s.data().records || {};
-                                    localStorage.setItem('yiwei_drinks_2026', JSON.stringify(window.drinkData));
-                                    window.render();
-                                }
-                            });
-                        }
-                    });
-                });
-            } catch (e) { console.error("Firebase Init Failed", e); }
-        }
-
-        // 保存函數
-        window.saveData = async () => {
-            localStorage.setItem('yiwei_drinks_2026', JSON.stringify(window.drinkData));
-            if (db && auth?.currentUser) {
-                const appId = typeof __app_id !== 'undefined' ? __app_id : 'yi-wei-2026';
-                await setDoc(doc(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'data', 'drinks'), {
-                    records: window.drinkData
-                });
-            }
-            window.render();
-        };
-
-        // 核心渲染
-        window.render = () => {
-            const grid = document.getElementById('calendar-grid');
-            const monthLabel = document.getElementById('month-label');
-            if(!grid) return;
-
-            grid.innerHTML = '';
-            monthLabel.innerText = `2026年 ${window.currentMonth + 1}月`;
-
-            const firstDay = new Date(2026, window.currentMonth, 1).getDay();
-            const daysInMonth = new Date(2026, window.currentMonth + 1, 0).getDate();
-            const todayStr = new Date().toISOString().split('T')[0];
-
-            // 填充空白
-            for (let i = 0; i < firstDay; i++) {
-                grid.appendChild(document.createElement('div'));
-            }
-
-            let mCount = 0;
-            let mCost = 0;
-
-            for (let d = 1; d <= daysInMonth; d++) {
-                const dateStr = `2026-${String(window.currentMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-                const cell = document.createElement('div');
-                cell.className = `day-cell ${dateStr === todayStr ? 'today' : ''}`;
-                
-                const dayRecords = window.drinkData[dateStr] || [];
-                if (dayRecords.length > 0) {
-                    cell.classList.add('has-data');
-                    cell.innerHTML = `🥤<span class="absolute bottom-1 right-1 text-[8px] opacity-50">${d}</span>`;
-                    dayRecords.forEach(r => {
-                        mCount++;
-                        mCost += Number(r.price || 0);
-                    });
-                } else {
-                    cell.innerText = d;
-                }
-
-                cell.onclick = () => window.openForm(dateStr);
-                grid.appendChild(cell);
-            }
-
-            document.getElementById('stat-month-count').innerText = mCount;
-            document.getElementById('stat-month-cost').innerText = mCost;
-            renderHistory();
-        };
-
-        function renderHistory() {
-            const list = document.getElementById('list-view');
-            list.innerHTML = '';
-            const allDates = Object.keys(window.drinkData).sort().reverse();
-            
-            if(allDates.length === 0) {
-                list.innerHTML = '<div class="text-center text-gray-400 py-10">尚無飲用紀錄</div>';
-                return;
-            }
-
-            allDates.forEach(date => {
-                window.drinkData[date].forEach((item, idx) => {
-                    const card = document.createElement('div');
-                    card.className = "bg-white p-4 rounded-xl shadow-sm flex justify-between items-center";
-                    card.innerHTML = `
-                        <div>
-                            <div class="text-[10px] text-gray-400 font-bold">${date}</div>
-                            <div class="font-bold text-gray-700">${item.shop} - ${item.item}</div>
-                            <div class="text-xs text-gray-400">${item.ice} / ${item.sugar} · $${item.price}</div>
+    <div id="entry-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-end sm:items-center justify-center z-50 transition-opacity opacity-0" onclick="if(event.target === this) closeEntryModal()">
+        <div class="bg-white w-full sm:w-[450px] sm:rounded-2xl rounded-t-2xl max-h-[95vh] flex flex-col shadow-2xl transform transition-transform translate-y-full" id="entry-modal-content">
+            <div class="p-4 border-b flex justify-between items-center bg-gray-50">
+                <div class="flex flex-col">
+                    <span class="font-bold text-lg text-gray-700" id="form-title">新增紀錄</span>
+                    <span class="text-[10px] text-gray-400 font-bold" id="form-date-subtitle">...</span>
+                </div>
+                <button onclick="closeEntryModal()" class="text-gray-400 w-8 h-8"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="p-5 overflow-y-auto space-y-6">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">店名</label>
+                        <input type="text" id="input-shop" class="bg-gray-50 border-b-2 border-gray-200 p-2 outline-none focus:border-theme" placeholder="例如：五十嵐">
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">品項</label>
+                        <input type="text" id="input-item" class="bg-gray-50 border-b-2 border-gray-200 p-2 outline-none focus:border-theme" placeholder="例如：紅茶">
+                    </div>
+                </div>
+                <div class="flex gap-4 items-center">
+                    <div class="w-1/3">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">價格</label>
+                        <input type="number" id="input-price" class="w-full bg-gray-50 border-b-2 border-gray-200 p-2 font-bold outline-none focus:border-theme" placeholder="$">
+                    </div>
+                    <div class="flex-1 text-right">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase block mb-1">評分</label>
+                        <div class="star-rating text-2xl space-x-1" id="star-rating">
+                            <i class="fas fa-star" onclick="setRating(1)"></i><i class="fas fa-star" onclick="setRating(2)"></i><i class="fas fa-star" onclick="setRating(3)"></i><i class="fas fa-star" onclick="setRating(4)"></i><i class="fas fa-star" onclick="setRating(5)"></i>
                         </div>
-                        <button onclick="deleteEntry('${date}', ${idx})" class="text-gray-300 p-2"><i class="fas fa-trash"></i></button>
-                    `;
-                    list.appendChild(card);
-                });
-            });
-        }
+                    </div>
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-gray-400 mb-2 block">冰塊 / 甜度</label>
+                    <div class="flex flex-wrap gap-2 mb-4" id="ice-options"></div>
+                    <div class="flex flex-wrap gap-2" id="sugar-options"></div>
+                </div>
+            </div>
+            <div class="p-4 border-t flex gap-3">
+                <button id="form-action-btn" onclick="handleFormAction()" class="px-6 py-3 font-bold transition-colors">清空</button>
+                <button onclick="saveEntry()" class="flex-1 bg-theme text-white font-bold py-3 rounded-xl shadow-md">儲存</button>
+            </div>
+        </div>
+    </div>
 
-        // 初始化
-        window.render();
-    </script>
+    <div id="settings-menu" class="fixed inset-0 bg-black/50 z-50 hidden" onclick="if(event.target === this) toggleSettings()">
+        <div class="absolute right-4 top-16 bg-white rounded-2xl shadow-xl w-72 overflow-hidden">
+            <div class="p-4 border-b space-y-4">
+                <div>
+                    <label class="text-xs font-bold text-gray-400 block mb-2">背景色</label>
+                    <div class="flex flex-wrap gap-2">
+                        <div class="swatch" style="background: #fdf6e3;" onclick="setTheme('bgColor', '#fdf6e3')"></div>
+                        <div class="swatch" style="background: #ffffff;" onclick="setTheme('bgColor', '#ffffff')"></div>
+                        <div class="swatch" style="background: #f3f4f6;" onclick="setTheme('bgColor', '#f3f4f6')"></div>
+                    </div>
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-gray-400 block mb-2">主題色</label>
+                    <div class="flex flex-wrap gap-2">
+                        <div class="swatch bg-red-400" onclick="setTheme('themeColor', '#f87171')"></div>
+                        <div class="swatch bg-blue-400" onclick="setTheme('themeColor', '#60a5fa')"></div>
+                        <div class="swatch bg-emerald-400" onclick="setTheme('themeColor', '#34d399')"></div>
+                    </div>
+                </div>
+            </div>
+            <button onclick="exportJSON()" class="w-full text-left px-4 py-3 text-sm flex items-center gap-2 hover:bg-gray-50"><i class="fas fa-download"></i> 導出備份</button>
+        </div>
+    </div>
 
     <script>
-        // 非模組化函數
-        function switchTab(t) {
-            document.getElementById('calendar-view').classList.toggle('hidden', t !== 'calendar');
-            document.getElementById('list-view').classList.toggle('hidden', t !== 'list');
-            document.getElementById('tab-cal').classList.toggle('active', t === 'calendar');
-            document.getElementById('tab-list').classList.toggle('active', t === 'list');
+        const YEAR = 2026;
+        const iceOpts = ['正常', '少冰', '微冰', '去冰', '熱'];
+        const sugarOpts = ['全糖', '少糖', '半糖', '微糖', '無糖'];
+        const months = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+
+        let currentMonth = new Date().getMonth();
+        let currentViewingDate = '';
+        let currentEditingIndex = null; 
+        let selectedIce = '', selectedSugar = '', currentRating = 0;
+        let activeView = 'calendar';
+        let listType = 'month';
+
+        window.applyTheme = () => {
+            document.documentElement.style.setProperty('--bg-color', window.userSettings.bgColor);
+            document.documentElement.style.setProperty('--theme-color', window.userSettings.themeColor);
+            document.body.style.backgroundColor = window.userSettings.bgColor;
+        };
+
+        function setTheme(k, v) {
+            window.userSettings[k] = v;
+            window.applyTheme();
+            window.saveToCloud();
         }
 
-        function changeMonth(dir) {
-            window.currentMonth = (window.currentMonth + dir + 12) % 12;
-            window.render();
+        window.renderAll = () => {
+            document.getElementById('current-month-display').innerText = `${YEAR}年 ${months[currentMonth]}`;
+            updateStats();
+            renderCalendar();
+            if(activeView === 'list') renderList();
+            if(!document.getElementById('day-modal').classList.contains('hidden')) {
+                openDayModal(currentViewingDate);
+            }
+        };
+
+        function renderCalendar() {
+            const grid = document.getElementById('calendar-grid');
+            if(!grid) return;
+            grid.innerHTML = '';
+            
+            const firstDay = new Date(YEAR, currentMonth, 1).getDay();
+            const totalDays = new Date(YEAR, currentMonth + 1, 0).getDate();
+            const todayStr = new Date().toISOString().split('T')[0];
+
+            for(let i=0; i<firstDay; i++) grid.appendChild(document.createElement('div'));
+            
+            for(let d=1; d<=totalDays; d++) {
+                const dateStr = `${YEAR}-${String(currentMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                const entries = window.drinkDB[dateStr] || [];
+                const cell = document.createElement('div');
+                
+                let cellClass = `day-cell flex flex-col items-center justify-center cursor-pointer ${dateStr === todayStr ? 'today' : ''}`;
+                if (entries.length === 1) cellClass += ' has-data';
+                else if (entries.length === 2) cellClass += ' multi-cups';
+                else if (entries.length >= 3) cellClass += ' heavy-cups';
+                else cellClass += ' bg-gray-50/40';
+                
+                cell.className = cellClass;
+                
+                if(entries.length > 0) {
+                    const countLabel = entries.length > 1 ? `<span class="absolute -top-1 -right-1 bg-theme text-white text-[8px] w-4 h-4 flex items-center justify-center rounded-full border border-white font-bold">${entries.length}</span>` : '';
+                    cell.innerHTML = `🥤${countLabel}`;
+                } else {
+                    cell.innerHTML = `<span class="text-xs text-gray-300">${d}</span>`;
+                }
+
+                cell.onclick = () => entries.length === 0 ? openEntryForm(dateStr) : openDayModal(dateStr);
+                grid.appendChild(cell);
+            }
         }
 
-        function openForm(date) {
-            window.selectedDate = date || new Date().toISOString().split('T')[0];
-            document.getElementById('form-title').innerText = `${window.selectedDate} 紀錄`;
-            document.getElementById('entry-modal').style.display = 'flex';
+        function updateStats() {
+            let mCost = 0, mCount = 0, yCost = 0, yCount = 0;
+            const prefix = `${YEAR}-${String(currentMonth+1).padStart(2,'0')}`;
+            
+            Object.keys(window.drinkDB).forEach(d => {
+                const dayEntries = window.drinkDB[d];
+                if(d.startsWith(prefix)) {
+                    dayEntries.forEach(e => { mCost += parseInt(e.price) || 0; mCount++; });
+                }
+                if(d.startsWith(`${YEAR}-`)) {
+                    dayEntries.forEach(e => { yCost += parseInt(e.price) || 0; yCount++; });
+                }
+            });
+            document.getElementById('month-cost').innerText = mCost;
+            document.getElementById('month-cups').innerText = mCount;
+            document.getElementById('year-cost').innerText = yCost;
+            document.getElementById('year-cups').innerText = yCount;
         }
 
-        function closeModal() {
-            document.getElementById('entry-modal').style.display = 'none';
+        function openDayModal(ds) {
+            currentViewingDate = ds;
+            const entries = window.drinkDB[ds] || [];
+            document.getElementById('day-modal-title').innerText = ds.replace(/-/g, '/');
+            const list = document.getElementById('day-records-list');
+            list.innerHTML = '';
+
+            if (entries.length === 0) { closeDayModal(); return; }
+
+            entries.forEach((e, idx) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'swipe-container';
+                wrapper.innerHTML = `
+                    <div class="swipe-action" onclick="executeDelete('${ds}', ${idx})">刪除</div>
+                    <div class="swipe-content flex items-center justify-between p-4 border border-gray-100 rounded-xl"
+                         onclick="openEntryForm('${ds}', ${idx})"
+                         ontouchstart="handleTouchStart(event, this)" ontouchmove="handleTouchMove(event, this)" ontouchend="handleTouchEnd(event, this)">
+                        <div>
+                            <div class="font-bold text-gray-700">${e.shop}</div>
+                            <div class="text-xs text-gray-400">${e.item} · $${e.price || 0}</div>
+                        </div>
+                        <div class="text-yellow-500 text-[10px]">${'★'.repeat(e.rating || 0)}</div>
+                    </div>`;
+                list.appendChild(wrapper);
+            });
+
+            const modal = document.getElementById('day-modal');
+            modal.classList.remove('hidden');
+            setTimeout(() => { modal.classList.remove('opacity-0'); document.getElementById('day-modal-content').classList.remove('translate-y-full'); }, 10);
         }
 
-        function setRating(r) {
-            window.selectedRating = r;
-            const stars = document.getElementById('star-rating').children;
-            for(let i=0; i<5; i++) stars[i].classList.toggle('active', i < r);
-        }
+        function openEntryForm(ds, idx = null) {
+            closeDayModal();
+            currentViewingDate = ds;
+            currentEditingIndex = idx;
+            const e = (idx !== null && window.drinkDB[ds]) ? window.drinkDB[ds][idx] : {};
 
-        function selectChip(type, val, el) {
-            const chips = el.parentElement.children;
-            for(let c of chips) c.classList.remove('selected');
-            el.classList.add('selected');
-            if(type === 'ice') window.selectedIce = val;
-            else window.selectedSugar = val;
+            document.getElementById('form-title').innerText = idx !== null ? '編輯紀錄' : '新增紀錄';
+            document.getElementById('form-date-subtitle').innerText = ds.replace(/-/g, '/');
+            document.getElementById('input-shop').value = e.shop || '';
+            document.getElementById('input-item').value = e.item || '';
+            document.getElementById('input-price').value = e.price || '';
+            setRating(e.rating || 0);
+            resetChips();
+            if(e.ice) selectChip('ice', e.ice);
+            if(e.sugar) selectChip('sugar', e.sugar);
+
+            const modal = document.getElementById('entry-modal');
+            modal.classList.remove('hidden');
+            setTimeout(() => { modal.classList.remove('opacity-0'); document.getElementById('entry-modal-content').classList.remove('translate-y-full'); }, 10);
         }
 
         async function saveEntry() {
-            const shop = document.getElementById('in-shop').value;
-            const item = document.getElementById('in-item').value;
-            const price = document.getElementById('in-price').value;
+            const shop = document.getElementById('input-shop').value.trim();
+            const item = document.getElementById('input-item').value.trim();
+            if(!shop || !item) return;
 
-            if(!shop || !item) {
-                alert('請填寫店名與品項');
-                return;
-            }
-
-            const record = {
-                shop, item, price,
-                ice: window.selectedIce || '未選',
-                sugar: window.selectedSugar || '未選',
-                rating: window.selectedRating
+            const entry = { shop, item, 
+                price: document.getElementById('input-price').value,
+                ice: selectedIce, sugar: selectedSugar, rating: currentRating
             };
 
-            if(!window.drinkData[window.selectedDate]) window.drinkData[window.selectedDate] = [];
-            window.drinkData[window.selectedDate].push(record);
+            if(!window.drinkDB[currentViewingDate]) window.drinkDB[currentViewingDate] = [];
+            if(currentEditingIndex === null) window.drinkDB[currentViewingDate].push(entry);
+            else window.drinkDB[currentViewingDate][currentEditingIndex] = entry;
 
-            await window.saveData();
-            
-            // 清空與關閉
-            document.getElementById('in-shop').value = '';
-            document.getElementById('in-item').value = '';
-            document.getElementById('in-price').value = '';
-            closeModal();
+            await window.saveToCloud();
+            closeEntryModal();
+            window.renderAll();
         }
 
-        function deleteEntry(date, idx) {
-            if(confirm('確定刪除此紀錄？')) {
-                window.drinkData[date].splice(idx, 1);
-                if(window.drinkData[date].length === 0) delete window.drinkData[date];
-                window.saveData();
+        async function executeDelete(date, index) {
+            if(window.drinkDB[date]) {
+                window.drinkDB[date].splice(index, 1);
+                if(window.drinkDB[date].length === 0) delete window.drinkDB[date];
+                await window.saveToCloud();
+                window.renderAll();
             }
         }
 
-        // 初始化 Chips
-        window.onload = () => {
-            const ices = ['正常', '少冰', '微冰', '去冰', '熱'];
-            const sugars = ['全糖', '半糖', '微糖', '無糖'];
-            
-            const iceContainer = document.getElementById('ice-chips');
-            const sugarContainer = document.getElementById('sugar-chips');
+        function resetChips() { document.querySelectorAll('.chip-btn').forEach(b => b.classList.remove('selected')); selectedIce = ''; selectedSugar = ''; }
+        function selectChip(type, val) {
+            const container = document.getElementById(type === 'ice' ? 'ice-options' : 'sugar-options');
+            Array.from(container.children).forEach(b => { if(b.innerText === val) { b.classList.add('selected'); if(type==='ice') selectedIce=val; else selectedSugar=val; } });
+        }
+        function setRating(r) { currentRating = r; Array.from(document.getElementById('star-rating').children).forEach((s, i) => s.classList.toggle('active', i < r)); }
+        function closeDayModal() { document.getElementById('day-modal').classList.add('opacity-0'); document.getElementById('day-modal-content').classList.add('translate-y-full'); setTimeout(() => document.getElementById('day-modal').classList.add('hidden'), 300); }
+        function closeEntryModal() { document.getElementById('entry-modal').classList.add('opacity-0'); document.getElementById('entry-modal-content').classList.add('translate-y-full'); setTimeout(() => document.getElementById('entry-modal').classList.add('hidden'), 300); }
+        function changeMonth(d) { currentMonth = (currentMonth + d + 12) % 12; window.renderAll(); }
+        function switchView(v) { 
+            activeView = v; 
+            document.getElementById('tab-calendar').classList.toggle('active', v === 'calendar');
+            document.getElementById('tab-list').classList.toggle('active', v === 'list');
+            document.getElementById('calendar-view-container').classList.toggle('hidden', v !== 'calendar');
+            document.getElementById('list-view-container').classList.toggle('hidden', v !== 'list');
+            window.renderAll();
+        }
+        function toggleSettings() { document.getElementById('settings-menu').classList.toggle('hidden'); }
+        function openQuickAdd() { const d = new Date(); openEntryForm(`${YEAR}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`); }
 
-            ices.forEach(v => {
-                const btn = document.createElement('button');
-                btn.className = 'chip-btn';
-                btn.innerText = v;
-                btn.onclick = (e) => selectChip('ice', v, e.target);
-                iceContainer.appendChild(btn);
-            });
+        // 滑動刪除效果
+        let touchStartX = 0;
+        function handleTouchStart(e) { touchStartX = e.touches[0].clientX; }
+        function handleTouchMove(e, el) { 
+            let moveX = e.touches[0].clientX - touchStartX;
+            if(moveX < 0 && moveX > -100) el.style.transform = `translateX(${moveX}px)`;
+        }
+        function handleTouchEnd(e, el) { 
+            let moveX = e.changedTouches[0].clientX - touchStartX;
+            el.style.transform = moveX < -50 ? 'translateX(-80px)' : 'translateX(0px)';
+        }
 
-            sugars.forEach(v => {
-                const btn = document.createElement('button');
-                btn.className = 'chip-btn';
-                btn.innerText = v;
-                btn.onclick = (e) => selectChip('sugar', v, e.target);
-                sugarContainer.appendChild(btn);
-            });
-        };
+        document.addEventListener('DOMContentLoaded', () => {
+            const ic = document.getElementById('ice-options'), sc = document.getElementById('sugar-options');
+            const create = (t, type) => {
+                const b = document.createElement('button'); b.className = 'chip-btn'; b.innerText = t;
+                b.onclick = (e) => {
+                    Array.from(e.target.parentElement.children).forEach(c => c.classList.remove('selected'));
+                    e.target.classList.add('selected');
+                    if(type === 'ice') selectedIce = t; else selectedSugar = t;
+                };
+                return b;
+            };
+            iceOpts.forEach(o => ic.appendChild(create(o, 'ice')));
+            sugarOpts.forEach(o => sc.appendChild(create(o, 'sugar')));
+            window.renderAll();
+        });
     </script>
 </body>
 </html>
