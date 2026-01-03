@@ -6,82 +6,6 @@
     <title>2026 翊維飲料日記</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <!-- Firebase SDKs -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // 環境變數檢查與 Firebase 初始化
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { /* 預留本地測試用 */ };
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'yi-wei-drink-2026';
-
-        window.drinkDB = {};
-        window.userSettings = {
-            bgColor: '#fdf6e3',
-            themeColor: '#f87171'
-        };
-        window.currentUser = null;
-
-        const initApp = async () => {
-            try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-            } catch (error) {
-                console.error("Auth Error:", error);
-            }
-        };
-
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                window.currentUser = user;
-                const userDocRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'mainData');
-                
-                onSnapshot(userDocRef, (docSnap) => {
-                    if (docSnap.exists()) {
-                        const data = docSnap.data();
-                        let records = data.records || {};
-                        
-                        // 確保資料格式相容性
-                        Object.keys(records).forEach(date => {
-                            if (records[date] && !Array.isArray(records[date])) {
-                                records[date] = [records[date]];
-                            }
-                        });
-                        
-                        window.drinkDB = records;
-                        if(data.settings) {
-                            window.userSettings = data.settings;
-                            window.applyTheme();
-                        }
-                    }
-                    window.renderAll();
-                }, (err) => console.error("Firestore Error:", err));
-            }
-        });
-
-        window.saveToCloud = async () => {
-            if (!window.currentUser) return;
-            const userDocRef = doc(db, 'artifacts', appId, 'users', window.currentUser.uid, 'settings', 'mainData');
-            try {
-                await setDoc(userDocRef, { 
-                    records: window.drinkDB,
-                    settings: window.userSettings
-                }, { merge: true });
-                window.renderAll();
-            } catch (e) {
-                console.error("Save Error:", e);
-            }
-        };
-
-        initApp();
-    </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
         :root { --bg-color: #fdf6e3; --theme-color: #f87171; }
@@ -120,7 +44,7 @@
                 </span>
                 <div class="flex flex-col">
                     <span class="leading-tight">2026 翊維飲料日記</span>
-                    <span class="text-[9px] text-blue-500 font-bold uppercase tracking-widest">Drink Diary 2026</span>
+                    <span class="text-[9px] text-blue-500 font-bold uppercase tracking-widest">Local Storage Edition</span>
                 </div>
             </h1>
             <button onclick="toggleSettings()" class="w-9 h-9 rounded-full bg-white shadow-sm flex items-center justify-center text-gray-400"><i class="fas fa-cog"></i></button>
@@ -257,8 +181,8 @@
     <div id="settings-menu" class="fixed inset-0 bg-black/50 z-50 hidden" onclick="if(event.target === this) toggleSettings()">
         <div class="absolute right-4 top-16 bg-white rounded-2xl shadow-xl w-72 overflow-hidden">
             <div class="px-4 py-3 text-[10px] text-gray-400 border-b flex flex-col font-mono">
-                <span class="font-bold">Sync ID:</span>
-                <span id="user-id-display" class="break-all">...</span>
+                <span class="font-bold">儲存模式:</span>
+                <span>瀏覽器本地儲存 (Local)</span>
             </div>
             <div class="p-4 border-b space-y-4">
                 <div>
@@ -285,14 +209,23 @@
                 </div>
             </div>
             <button onclick="exportJSON()" class="w-full text-left px-4 py-3 text-sm flex items-center gap-2 hover:bg-gray-50"><i class="fas fa-download"></i> 導出 JSON 備份</button>
+            <button onclick="importJSON()" class="w-full text-left px-4 py-3 text-sm flex items-center gap-2 hover:bg-gray-50"><i class="fas fa-upload"></i> 匯入 JSON 備份</button>
         </div>
     </div>
 
     <script>
+        // 核心資料與狀態
         const YEAR = 2026;
+        const STORAGE_KEY = 'yi_wei_drink_diary_2026';
         const iceOpts = ['固定', '正常', '少冰', '微冰', '去冰', '常溫', '熱'];
         const sugarOpts = ['固定', '全糖', '少糖', '半糖', '微糖', '一分糖', '無糖'];
         const months = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+
+        window.drinkDB = {};
+        window.userSettings = {
+            bgColor: '#fdf6e3',
+            themeColor: '#f87171'
+        };
 
         let currentMonth = new Date().getMonth();
         let currentViewingDate = '';
@@ -302,21 +235,46 @@
         let listType = 'month';
         let listSortOrder = 'desc';
 
+        // --- 資料儲存邏輯 (LocalStorage) ---
+        function loadData() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    window.drinkDB = parsed.records || {};
+                    window.userSettings = parsed.settings || window.userSettings;
+                    window.applyTheme();
+                } catch (e) {
+                    console.error("資料解析失敗", e);
+                }
+            }
+        }
+
+        function saveData() {
+            const data = {
+                records: window.drinkDB,
+                settings: window.userSettings
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            renderAll();
+        }
+
+        // --- UI 主題邏輯 ---
         window.applyTheme = () => {
             document.documentElement.style.setProperty('--bg-color', window.userSettings.bgColor);
             document.documentElement.style.setProperty('--theme-color', window.userSettings.themeColor);
             document.body.style.backgroundColor = window.userSettings.bgColor;
         };
 
-        async function setTheme(k, v) {
+        function setTheme(k, v) {
             window.userSettings[k] = v;
             window.applyTheme();
-            await window.saveToCloud();
+            saveData();
         }
 
+        // --- 渲染邏輯 ---
         function renderAll() {
             document.getElementById('current-month-display').innerText = `${YEAR}年 ${months[currentMonth]}`;
-            if(window.currentUser) document.getElementById('user-id-display').innerText = window.currentUser.uid;
             updateStats();
             renderCalendar();
             if(activeView === 'list') renderList();
@@ -325,36 +283,25 @@
             }
         }
 
-        /**
-         * 強化版日曆渲染邏輯
-         * 1. 使用明確的 Date 建構式防止時區偏差
-         * 2. 清理格點確保佈署後佈局不跑版
-         */
         function renderCalendar() {
             const grid = document.getElementById('calendar-grid');
             if(!grid) return;
             grid.innerHTML = '';
 
-            // 取得該月第一天是星期幾 (0-6)
             const firstDayDate = new Date(YEAR, currentMonth, 1);
             const firstDayIndex = firstDayDate.getDay(); 
-
-            // 取得該月總天數
             const lastDayDate = new Date(YEAR, currentMonth + 1, 0);
             const totalDays = lastDayDate.getDate();
 
-            // 今天日期的字串格式 (YYYY-MM-DD)
             const todayObj = new Date();
             const todayStr = `${todayObj.getFullYear()}-${String(todayObj.getMonth()+1).padStart(2,'0')}-${String(todayObj.getDate()).padStart(2,'0')}`;
 
-            // 填充第一天之前的空白格
             for(let i=0; i<firstDayIndex; i++) {
                 const empty = document.createElement('div');
                 empty.className = "day-cell opacity-0 pointer-events-none";
                 grid.appendChild(empty);
             }
             
-            // 渲染日期格
             for(let d=1; d<=totalDays; d++) {
                 const dateStr = `${YEAR}-${String(currentMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
                 const entries = window.drinkDB[dateStr] || [];
@@ -362,7 +309,6 @@
                 
                 let cellClass = `day-cell flex flex-col items-center justify-center cursor-pointer transition-all active:scale-90 ${dateStr === todayStr ? 'today' : ''}`;
                 
-                // 根據杯數變換背景深度
                 if (entries.length === 1) cellClass += ' has-data shadow-sm';
                 else if (entries.length === 2) cellClass += ' multi-cups shadow';
                 else if (entries.length >= 3) cellClass += ' heavy-cups shadow-md';
@@ -389,6 +335,7 @@
             return ds.replace(/-/g, '/');
         }
 
+        // --- 彈窗控制 ---
         function openDayModal(ds) {
             currentViewingDate = ds;
             const entries = window.drinkDB[ds] || [];
@@ -493,7 +440,7 @@
             setTimeout(() => document.getElementById('entry-modal').classList.add('hidden'), 300);
         }
 
-        async function saveEntry() {
+        function saveEntry() {
             const shop = document.getElementById('input-shop').value.trim();
             const item = document.getElementById('input-item').value.trim();
             if(!shop || !item) return;
@@ -514,15 +461,15 @@
                 window.drinkDB[currentViewingDate][currentEditingIndex] = entry;
             }
 
-            await window.saveToCloud();
+            saveData();
             closeEntryModal();
         }
 
-        async function executeDelete(date, index) {
+        function executeDelete(date, index) {
             if(window.drinkDB[date]) {
                 window.drinkDB[date].splice(index, 1);
                 if(window.drinkDB[date].length === 0) delete window.drinkDB[date];
-                await window.saveToCloud();
+                saveData();
                 if(activeView === 'list') renderList();
             }
         }
@@ -533,6 +480,7 @@
             openEntryForm(ds);
         }
 
+        // --- 統計計算 ---
         function updateStats() {
             let mCost = 0, mCount = 0, yCost = 0, yCount = 0;
             const prefix = `${YEAR}-${String(currentMonth+1).padStart(2,'0')}`;
@@ -553,6 +501,7 @@
             document.getElementById('year-cups').innerText = yCount;
         }
 
+        // --- 滑動手勢 ---
         let touchStartX = 0, currentSwipeEl = null;
 
         function handleTouchStart(e, el) {
@@ -578,6 +527,7 @@
             }
         }
 
+        // --- 清單視圖 ---
         function toggleSortOrder() {
             listSortOrder = listSortOrder === 'desc' ? 'asc' : 'desc';
             const icon = document.getElementById('sort-icon');
@@ -641,8 +591,10 @@
             });
         }
 
+        // --- 初始化與標籤選擇 ---
         function initChips() {
             const ic = document.getElementById('ice-options'), sc = document.getElementById('sugar-options');
+            if(!ic || !sc) return;
             const create = (t, type) => {
                 const b = document.createElement('button'); b.className = 'chip-btn'; b.innerText = t;
                 b.onclick = (e) => {
@@ -663,6 +615,7 @@
 
         function selectChip(type, val) {
             const container = document.getElementById(type === 'ice' ? 'ice-options' : 'sugar-options');
+            if(!container) return;
             Array.from(container.children).forEach(b => { 
                 if(b.innerText === val) { 
                     b.classList.add('selected'); 
@@ -686,25 +639,54 @@
             listType = t;
             ['month', 'year'].forEach(id => {
                 const btn = document.getElementById(`subtab-${id}`);
-                if(id === t) { btn.classList.add('bg-white', 'text-theme', 'shadow-sm'); btn.classList.remove('text-gray-400'); }
-                else { btn.classList.remove('bg-white', 'text-theme', 'shadow-sm'); btn.classList.add('text-gray-400'); }
+                if(btn) {
+                    if(id === t) { btn.classList.add('bg-white', 'text-theme', 'shadow-sm'); btn.classList.remove('text-gray-400'); }
+                    else { btn.classList.remove('bg-white', 'text-theme', 'shadow-sm'); btn.classList.add('text-gray-400'); }
+                }
             });
             renderList();
         }
 
         function toggleSettings() { document.getElementById('settings-menu').classList.toggle('hidden'); }
 
+        // --- 匯入/匯出功能 ---
         function exportJSON() {
-            const data = JSON.stringify(window.drinkDB, null, 2);
+            const data = JSON.stringify({ records: window.drinkDB, settings: window.userSettings }, null, 2);
             const blob = new Blob([data], {type:'application/json'});
-            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'drinks_backup_2026.json'; a.click();
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `drinks_backup_${new Date().getTime()}.json`; a.click();
         }
 
-        // 啟動初始化
-        window.addEventListener('load', () => {
+        function importJSON() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = e => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = event => {
+                    try {
+                        const parsed = JSON.parse(event.target.result);
+                        if (parsed.records) {
+                            window.drinkDB = parsed.records;
+                            if(parsed.settings) window.userSettings = parsed.settings;
+                            saveData();
+                            window.applyTheme();
+                            alert('匯入成功！');
+                        }
+                    } catch (err) {
+                        alert('匯入失敗，請檢查檔案格式。');
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        window.onload = () => {
             initChips();
+            loadData();
             renderAll();
-        });
+        };
     </script>
 </body>
 </html>
