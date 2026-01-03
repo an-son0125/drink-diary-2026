@@ -20,27 +20,30 @@
         .stat-value { font-size: 1.6rem; font-weight: 900; color: var(--theme-color); line-height: 1.1; }
         .stat-unit { font-size: 12px; font-weight: 700; color: #d1d1d1; }
         
-        /* 日曆 (改為方角) */
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
-        .day-cell { aspect-ratio: 1/1; border-radius: 0px; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; background: white; border: 1px solid rgba(0,0,0,0.02); position: relative; cursor: pointer; }
+        /* 日曆 (改為圓角) */
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; } /* 增加gap讓圓角明顯 */
+        .day-cell { aspect-ratio: 1/1; border-radius: 14px; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; background: white; border: 1px solid rgba(0,0,0,0.02); position: relative; cursor: pointer; }
         .day-cell.today { border: 2px solid var(--theme-color); color: var(--theme-color); }
-        .badge { position: absolute; top: 1px; right: 1px; background: white; color: var(--theme-color); font-size: 9px; min-width: 14px; height: 14px; border-radius: 0px; display: flex; align-items: center; justify-content: center; font-weight: 900; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        /* Badge 改為圓形 */
+        .badge { position: absolute; top: -2px; right: -2px; background: white; color: var(--theme-color); font-size: 9px; min-width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; box-shadow: 0 1px 2px rgba(0,0,0,0.1); border: 1px solid var(--theme-color); }
 
-        /* 滑動選單 (文字居中) */
-        .swipe-item { position: relative; overflow: hidden; border-radius: 0px; margin-bottom: 2px; background: #f0f0f0; }
+        /* 滑動選單 (文字居中) - 圓角 */
+        .swipe-item { position: relative; overflow: hidden; border-radius: 16px; margin-bottom: 6px; background: #f0f0f0; }
         .btn-action { position: absolute; top: 0; bottom: 0; width: 64px; display: flex; align-items: center; justify-content: center; font-weight: 900; color: white; z-index: 1; }
         .btn-del { right: 0; background-color: #e5989b; }
         .btn-edit { left: 0; background-color: #b8c0ff; }
         .swipe-content { position: relative; z-index: 10; background: white; transition: transform 0.2s ease-out; cursor: grab; }
         
+        /* Tab 按鈕 (底部線條模式) */
         .tab-btn { padding: 8px 0; font-weight: 900; font-size: 16px; color: #ccc; flex: 1; border-bottom: 3px solid transparent; }
         .tab-btn.active { color: var(--text-color); border-bottom-color: var(--theme-color); }
 
-        .chip-btn { border: 1px solid #eee; color: #888; padding: 6px 12px; border-radius: 0px; font-size: 13px; font-weight: 700; background: white; }
+        /* Chip 按鈕 (改為圓角) */
+        .chip-btn { border: 1px solid #eee; color: #888; padding: 6px 14px; border-radius: 50px; font-size: 13px; font-weight: 700; background: white; }
         .chip-btn.selected { background-color: var(--theme-color) !important; color: white !important; border-color: var(--theme-color) !important; }
 
-        /* 設定選單彈窗 */
-        #settings-menu { position: absolute; top: 60px; right: 20px; background: white; border-radius: 0px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 220px; z-index: 50; overflow: hidden; border: 1px solid #eee; }
+        /* 設定選單彈窗 (圓角) */
+        #settings-menu { position: absolute; top: 60px; right: 20px; background: white; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 220px; z-index: 50; overflow: hidden; border: 1px solid #eee; }
         .setting-opt { padding: 12px; font-weight: 700; font-size: 14px; border-bottom: 1px solid #f9f9f9; width: 100%; text-align: left; }
         .uid-box { padding: 10px; background: #f8f8f8; font-size: 10px; word-break: break-all; color: #999; font-family: monospace; border-bottom: 1px solid #eee; }
     </style>
@@ -56,12 +59,12 @@
         <div class="flex justify-between items-start mb-3">
             <div>
                 <h1 class="text-xl font-black flex items-center gap-2">
-                    <span class="bg-theme text-white w-8 h-8 rounded-none flex items-center justify-center shadow-sm"><i class="fas fa-mug-hot text-sm"></i></span>
+                    <span class="bg-theme text-white w-9 h-9 rounded-2xl flex items-center justify-center shadow-sm"><i class="fas fa-mug-hot text-sm"></i></span>
                     <span>翊維飲料日記</span>
                 </h1>
-                <p class="text-[10px] font-black tracking-[0.2em] opacity-50 mt-0.5">DRINK DIARY 2026</p>
+                <p class="text-[10px] font-black tracking-[0.2em] opacity-50 mt-0.5 ml-1">DRINK DIARY 2026</p>
             </div>
-            <button onclick="toggleSettings(event)" class="w-9 h-9 rounded-none bg-white shadow-sm flex items-center justify-center text-gray-400 border border-gray-100 active:bg-gray-50">
+            <button onclick="toggleSettings(event)" class="w-9 h-9 rounded-full bg-white shadow-sm flex items-center justify-center text-gray-400 border border-gray-100 active:bg-gray-50">
                 <i class="fas fa-sliders-h text-lg"></i>
             </button>
         </div>
@@ -110,7 +113,7 @@
             <button onclick="changeMonth(1)" class="opacity-30 p-2"><i class="fas fa-chevron-right text-xl"></i></button>
         </div>
         <div class="flex-grow overflow-y-auto px-4 pb-20 no-scrollbar">
-            <div class="bg-white rounded-none p-4 shadow-sm border border-gray-100">
+            <div class="bg-white rounded-3xl p-4 shadow-sm border border-gray-100">
                 <div class="grid grid-cols-7 gap-1 mb-3 text-center text-[10px] opacity-40 font-black">
                     <div>SUN</div><div>MON</div><div>TUE</div><div>WED</div><div>THU</div><div>FRI</div><div>SAT</div>
                 </div>
@@ -121,17 +124,17 @@
 
     <div id="list-view-container" class="hidden flex flex-col flex-grow overflow-hidden">
         <div class="flex-none px-4 py-2 flex justify-between items-center">
-            <div class="bg-white/60 p-1 rounded-none flex gap-1 border border-white flex-grow mr-2">
-                <button onclick="switchListType('month')" id="subtab-month" class="bg-white py-1.5 flex-1 rounded-none font-black shadow-sm text-xs">當月</button>
-                <button onclick="switchListType('year')" id="subtab-year" class="text-gray-300 py-1.5 flex-1 rounded-none font-black text-xs">年度</button>
+            <div class="bg-white/60 p-1 rounded-full flex gap-1 border border-white flex-grow mr-2">
+                <button onclick="switchListType('month')" id="subtab-month" class="bg-white py-1.5 flex-1 rounded-full font-black shadow-sm text-xs transition-all">當月</button>
+                <button onclick="switchListType('year')" id="subtab-year" class="text-gray-300 py-1.5 flex-1 rounded-full font-black text-xs transition-all">年度</button>
             </div>
-            <button onclick="toggleSort()" class="w-8 h-8 bg-white rounded-none shadow-sm text-gray-400 flex items-center justify-center border border-gray-100"><i id="sort-icon" class="fas fa-sort-amount-down text-sm"></i></button>
+            <button onclick="toggleSort()" class="w-8 h-8 bg-white rounded-full shadow-sm text-gray-400 flex items-center justify-center border border-gray-100"><i id="sort-icon" class="fas fa-sort-amount-down text-sm"></i></button>
         </div>
         <div class="flex-grow overflow-y-auto px-4 pb-20 no-scrollbar" id="list-items-container"></div>
     </div>
 
     <div id="day-detail-modal" class="fixed inset-0 bg-black/30 backdrop-blur-sm hidden items-end sm:items-center justify-center z-[100] transition-opacity opacity-0" onclick="if(event.target === this) closeDayDetail()">
-        <div class="bg-white w-full sm:w-[380px] rounded-t-none sm:rounded-none max-h-[75vh] flex flex-col shadow-2xl transform transition-transform translate-y-full" id="day-detail-modal-content">
+        <div class="bg-white w-full sm:w-[380px] rounded-t-3xl sm:rounded-3xl max-h-[75vh] flex flex-col shadow-2xl transform transition-transform translate-y-full" id="day-detail-modal-content">
             <div class="p-5 border-b border-gray-50 flex justify-between items-center">
                 <span class="font-black text-xl text-gray-600" id="detail-date-title"></span>
                 <button onclick="closeDayDetail()"><i class="fas fa-times text-2xl opacity-20"></i></button>
@@ -141,32 +144,32 @@
     </div>
 
     <div id="entry-modal" class="fixed inset-0 bg-black/40 backdrop-blur-md hidden items-end sm:items-center justify-center z-[150] transition-opacity opacity-0" onclick="if(event.target === this) closeEntryModal()">
-        <div class="bg-white w-full sm:w-[380px] rounded-t-none sm:rounded-none h-[82vh] flex flex-col shadow-2xl transform transition-transform translate-y-full" id="entry-modal-content">
+        <div class="bg-white w-full sm:w-[380px] rounded-t-3xl sm:rounded-3xl h-[82vh] flex flex-col shadow-2xl transform transition-transform translate-y-full" id="entry-modal-content">
             <div class="flex-none p-6 pb-2">
                 <div class="flex justify-between items-center mb-3">
                     <span class="font-black text-xl" id="form-title">新增紀錄</span>
                     <button onclick="closeEntryModal()" class="opacity-20"><i class="fas fa-times text-xl"></i></button>
                 </div>
-                <input type="text" id="input-date-text" class="w-full bg-gray-50 border-b-2 border-theme p-3 font-black text-lg outline-none" style="border-color: var(--theme-color)" placeholder="YYYY/MM/DD">
+                <input type="text" id="input-date-text" class="w-full bg-gray-50 border-b-2 border-theme p-3 font-black text-lg outline-none rounded-xl" style="border-color: var(--theme-color)" placeholder="YYYY/MM/DD">
             </div>
             <div class="p-6 pt-2 space-y-4 overflow-y-auto no-scrollbar flex-grow">
                 <div class="grid grid-cols-2 gap-3">
-                    <div><label class="text-xs font-black text-gray-400 mb-1 block">店名</label><input type="text" id="input-shop" class="w-full bg-gray-50 rounded-none p-3 outline-none font-black border-b" placeholder="50嵐"></div>
-                    <div><label class="text-xs font-black text-gray-400 mb-1 block">品項</label><input type="text" id="input-item" class="w-full bg-gray-50 rounded-none p-3 outline-none font-black border-b" placeholder="珍珠奶茶"></div>
+                    <div><label class="text-xs font-black text-gray-400 mb-1 block">店名</label><input type="text" id="input-shop" class="w-full bg-gray-50 rounded-xl p-3 outline-none font-black border-none" placeholder="50嵐"></div>
+                    <div><label class="text-xs font-black text-gray-400 mb-1 block">品項</label><input type="text" id="input-item" class="w-full bg-gray-50 rounded-xl p-3 outline-none font-black border-none" placeholder="珍珠奶茶"></div>
                 </div>
-                <div><label class="text-xs font-black text-gray-400 mb-1 block">價格</label><input type="number" id="input-price" class="w-full bg-gray-50 rounded-none p-3 font-black text-xl outline-none border-b" placeholder="$"></div>
+                <div><label class="text-xs font-black text-gray-400 mb-1 block">價格</label><input type="number" id="input-price" class="w-full bg-gray-50 rounded-xl p-3 font-black text-xl outline-none border-none" placeholder="$"></div>
                 <div><label class="text-xs font-black text-gray-400 mb-2 block">冰塊</label><div class="flex flex-wrap gap-1" id="ice-options"></div></div>
                 <div><label class="text-xs font-black text-gray-400 mb-2 block">甜度</label><div class="flex flex-wrap gap-1" id="sugar-options"></div></div>
-                <div><label class="text-xs font-black text-gray-400 mb-1 block">備註</label><textarea id="input-note" class="w-full bg-gray-50 rounded-none p-3 text-sm font-bold outline-none border-b" rows="2"></textarea></div>
+                <div><label class="text-xs font-black text-gray-400 mb-1 block">備註</label><textarea id="input-note" class="w-full bg-gray-50 rounded-xl p-3 text-sm font-bold outline-none border-none" rows="2"></textarea></div>
             </div>
             <div class="p-6 flex gap-3">
                 <button onclick="clearForm()" class="px-4 font-black text-gray-400 text-sm">清空</button>
-                <button onclick="saveEntry()" class="flex-1 bg-theme text-white font-black py-4 rounded-none shadow-lg text-lg active:scale-95 transition-transform">儲存紀錄</button>
+                <button onclick="saveEntry()" class="flex-1 bg-theme text-white font-black py-4 rounded-xl shadow-lg text-lg active:scale-95 transition-transform">儲存紀錄</button>
             </div>
         </div>
     </div>
 
-    <button onclick="openQuickAdd()" class="fixed bottom-6 right-6 w-14 h-14 bg-theme text-white rounded-none flex items-center justify-center text-2xl z-40 shadow-xl active:scale-90 transition-transform"><i class="fas fa-plus"></i></button>
+    <button onclick="openQuickAdd()" class="fixed bottom-6 right-6 w-14 h-14 bg-theme text-white rounded-full flex items-center justify-center text-2xl z-40 shadow-xl active:scale-90 transition-transform"><i class="fas fa-plus"></i></button>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
@@ -305,9 +308,18 @@
 
         function createSwipeItem(record, date, idx, isYear) {
             const wrapper = document.createElement('div'); wrapper.className = 'swipe-item';
-            wrapper.innerHTML = `
+            
+            // 根據需求：年度模式下不顯示刪除與修正按鈕
+            let actionsHtml = '';
+            if (!isYear) {
+                actionsHtml = `
                 <div class="btn-action btn-del" onclick="delRec('${date}',${idx})"><span>刪除</span></div>
                 <div class="btn-action btn-edit" onclick="openEntryForm('${date}',${idx}, event)"><span>修正</span></div>
+                `;
+            }
+
+            wrapper.innerHTML = `
+                ${actionsHtml}
                 <div class="swipe-content p-4 flex justify-between items-center">
                     <div>
                         <div class="text-[9px] font-black opacity-30 mb-0.5">${date.replace(/-/g, '/')}</div>
@@ -316,22 +328,26 @@
                     </div>
                     <div class="text-xl font-black" style="color:var(--theme-color)">$${record.price}</div>
                 </div>`;
-            const content = wrapper.querySelector('.swipe-content');
-            let startX = 0, currentX = 0;
-            content.ontouchstart = (e) => { startX = e.touches[0].pageX; content.style.transition = 'none'; };
-            content.ontouchmove = (e) => { 
-                currentX = e.touches[0].pageX - startX; 
-                if(currentX < -64) currentX = -64; 
-                if(currentX > 64) currentX = 64; 
-                content.style.transform = `translateX(${currentX}px)`; 
-            };
-            content.ontouchend = () => { 
-                content.style.transition = '0.2s'; 
-                if(currentX < -32) content.style.transform = 'translateX(-64px)'; 
-                else if(currentX > 32) content.style.transform = 'translateX(64px)'; 
-                else content.style.transform = 'translateX(0px)'; 
-                currentX = 0; 
-            };
+            
+            // 只有在非年度模式下才綁定滑動事件
+            if (!isYear) {
+                const content = wrapper.querySelector('.swipe-content');
+                let startX = 0, currentX = 0;
+                content.ontouchstart = (e) => { startX = e.touches[0].pageX; content.style.transition = 'none'; };
+                content.ontouchmove = (e) => { 
+                    currentX = e.touches[0].pageX - startX; 
+                    if(currentX < -64) currentX = -64; 
+                    if(currentX > 64) currentX = 64; 
+                    content.style.transform = `translateX(${currentX}px)`; 
+                };
+                content.ontouchend = () => { 
+                    content.style.transition = '0.2s'; 
+                    if(currentX < -32) content.style.transform = 'translateX(-64px)'; 
+                    else if(currentX > 32) content.style.transform = 'translateX(64px)'; 
+                    else content.style.transform = 'translateX(0px)'; 
+                    currentX = 0; 
+                };
+            }
             return wrapper;
         }
 
@@ -371,8 +387,9 @@
         };
         window.switchListType = (t) => { 
             listType = t; 
-            document.getElementById('subtab-month').className = t === 'month' ? 'bg-white py-1.5 flex-1 rounded-none font-black shadow-sm text-xs' : 'text-gray-300 py-1.5 flex-1 rounded-none font-black text-xs';
-            document.getElementById('subtab-year').className = t === 'year' ? 'bg-white py-1.5 flex-1 rounded-none font-black shadow-sm text-xs' : 'text-gray-300 py-1.5 flex-1 rounded-none font-black text-xs';
+            // 修改按鈕樣式切換邏輯以適應 rounded-full
+            document.getElementById('subtab-month').className = t === 'month' ? 'bg-white py-1.5 flex-1 rounded-full font-black shadow-sm text-xs transition-all' : 'text-gray-300 py-1.5 flex-1 rounded-full font-black text-xs transition-all';
+            document.getElementById('subtab-year').className = t === 'year' ? 'bg-white py-1.5 flex-1 rounded-full font-black shadow-sm text-xs transition-all' : 'text-gray-300 py-1.5 flex-1 rounded-full font-black text-xs transition-all';
             renderList(); 
         };
         
