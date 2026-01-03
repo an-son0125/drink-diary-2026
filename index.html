@@ -12,7 +12,7 @@
         body { font-family: 'Noto Sans TC', sans-serif; background-color: var(--bg-color); color: var(--text-color); transition: all 0.3s ease; font-size: 14px; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         
-        /* 統計區塊 (修改為置中對齊) */
+        /* 統計區塊 */
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
         .stat-card { background: white; padding: 12px; border-radius: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .stat-label { font-size: 13px; font-weight: 900; color: #a1a1a1; margin-bottom: 4px; text-align: center; width: 100%; }
@@ -20,28 +20,26 @@
         .stat-value { font-size: 1.6rem; font-weight: 900; color: var(--theme-color); line-height: 1.1; }
         .stat-unit { font-size: 12px; font-weight: 700; color: #d1d1d1; }
         
-        /* 日曆 (圓角) */
+        /* 日曆 */
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
         .day-cell { aspect-ratio: 1/1; border-radius: 14px; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; background: white; border: 1px solid rgba(0,0,0,0.02); position: relative; cursor: pointer; }
         .day-cell.today { border: 2px solid var(--theme-color); color: var(--theme-color); }
         .badge { position: absolute; top: -2px; right: -2px; background: white; color: var(--theme-color); font-size: 9px; min-width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; box-shadow: 0 1px 2px rgba(0,0,0,0.1); border: 1px solid var(--theme-color); }
 
-        /* 滑動選單 - 圓角 */
+        /* 滑動選單 */
         .swipe-item { position: relative; overflow: hidden; border-radius: 16px; margin-bottom: 6px; background: #f0f0f0; }
         .btn-action { position: absolute; top: 0; bottom: 0; width: 64px; display: flex; align-items: center; justify-content: center; font-weight: 900; color: white; z-index: 1; }
-        /* 移除 .btn-del 樣式，只保留編輯(更新)按鈕 */
+        .btn-del { right: 0; background-color: #e5989b; } /* 恢復刪除按鈕樣式 */
         .btn-edit { left: 0; background-color: #b8c0ff; }
         .swipe-content { position: relative; z-index: 10; background: white; transition: transform 0.2s ease-out; cursor: grab; }
         
-        /* Tab 按鈕 */
+        /* UI元件 */
         .tab-btn { padding: 8px 0; font-weight: 900; font-size: 16px; color: #ccc; flex: 1; border-bottom: 3px solid transparent; }
         .tab-btn.active { color: var(--text-color); border-bottom-color: var(--theme-color); }
 
-        /* Chip 按鈕 */
         .chip-btn { border: 1px solid #eee; color: #888; padding: 6px 14px; border-radius: 50px; font-size: 13px; font-weight: 700; background: white; }
         .chip-btn.selected { background-color: var(--theme-color) !important; color: white !important; border-color: var(--theme-color) !important; }
 
-        /* 設定選單彈窗 */
         #settings-menu { position: absolute; top: 60px; right: 20px; background: white; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 220px; z-index: 50; overflow: hidden; border: 1px solid #eee; }
         .setting-opt { padding: 12px; font-weight: 700; font-size: 14px; border-bottom: 1px solid #f9f9f9; width: 100%; text-align: left; }
         .uid-box { padding: 10px; background: #f8f8f8; font-size: 10px; word-break: break-all; color: #999; font-family: monospace; border-bottom: 1px solid #eee; }
@@ -273,7 +271,6 @@
             let dateToDisplay = ds ? ds.replace(/-/g, '/') : new Date().toLocaleDateString('zh-TW', {year:'numeric', month:'2-digit', day:'2-digit'});
             editingIdx = idx;
             document.getElementById('input-date-text').value = dateToDisplay;
-            // 修正文字改為更新
             document.getElementById('form-title').innerText = idx !== null ? '更新紀錄' : '新增紀錄';
             clearForm(); 
             if(idx !== null && window.drinkDB[ds]) {
@@ -309,13 +306,11 @@
         function createSwipeItem(record, date, idx, isYear) {
             const wrapper = document.createElement('div'); wrapper.className = 'swipe-item';
             
-            // 根據需求：
-            // 1. 移除刪除按鈕
-            // 2. 「修正」改為「更新」
-            // 3. 年度模式不顯示操作按鈕
+            // 恢復「刪除」按鈕 HTML
             let actionsHtml = '';
             if (!isYear) {
                 actionsHtml = `
+                <div class="btn-action btn-del" onclick="delRec('${date}',${idx})"><span>刪除</span></div>
                 <div class="btn-action btn-edit" onclick="openEntryForm('${date}',${idx}, event)"><span>更新</span></div>
                 `;
             }
@@ -337,15 +332,15 @@
                 content.ontouchstart = (e) => { startX = e.touches[0].pageX; content.style.transition = 'none'; };
                 content.ontouchmove = (e) => { 
                     currentX = e.touches[0].pageX - startX; 
-                    // 移除左滑(負值)顯示刪除的功能
-                    if(currentX < 0) currentX = 0; 
-                    if(currentX > 64) currentX = 64; // 只允許右滑顯示更新
+                    if(currentX < -64) currentX = -64; // 恢復左滑最大距離
+                    if(currentX > 64) currentX = 64; 
                     content.style.transform = `translateX(${currentX}px)`; 
                 };
                 content.ontouchend = () => { 
                     content.style.transition = '0.2s'; 
-                    // 判斷右滑
-                    if(currentX > 32) content.style.transform = 'translateX(64px)'; 
+                    // 恢復左滑判斷
+                    if(currentX < -32) content.style.transform = 'translateX(-64px)'; 
+                    else if(currentX > 32) content.style.transform = 'translateX(64px)'; 
                     else content.style.transform = 'translateX(0px)'; 
                     currentX = 0; 
                 };
@@ -353,8 +348,12 @@
             return wrapper;
         }
 
-        // delRec 保留給其他邏輯使用，但UI上已移除按鈕
-        window.delRec = (d, i) => { if(confirm('確定刪除？')){ window.drinkDB[d].splice(i, 1); if(!window.drinkDB[d].length) delete window.drinkDB[d]; window.saveData(); } };
+        // 修改刪除邏輯：移除 confirm，直接執行刪除
+        window.delRec = (d, i) => { 
+            window.drinkDB[d].splice(i, 1); 
+            if(!window.drinkDB[d].length) delete window.drinkDB[d]; 
+            window.saveData(); 
+        };
         
         window.toggleSort = () => { sortOrder = sortOrder === 'desc' ? 'asc' : 'desc'; document.getElementById('sort-icon').className = sortOrder === 'desc' ? 'fas fa-sort-amount-down' : 'fas fa-sort-amount-up'; renderList(); };
         window.renderList = () => {
