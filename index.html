@@ -8,10 +8,24 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
-        :root { --bg-color: #f4f1ea; --theme-color: #95a78d; --text-color: #5b5b5b; }
-        body { font-family: 'Noto Sans TC', sans-serif; background-color: var(--bg-color); color: var(--text-color); transition: all 0.3s ease; font-size: 14px; }
+        :root { 
+            --bg-color: #f4f1ea; 
+            --theme-color: #95a78d; 
+            --text-color: #5b5b5b; 
+        }
+        body { 
+            font-family: 'Noto Sans TC', sans-serif; 
+            background-color: var(--bg-color); 
+            color: var(--text-color); 
+            transition: background-color 0.3s ease; 
+            font-size: 14px; 
+        }
         .no-scrollbar::-webkit-scrollbar { display: none; }
+        .bg-theme { background-color: var(--theme-color) !important; }
+        .text-theme { color: var(--theme-color) !important; }
+        .border-theme { border-color: var(--theme-color) !important; }
         
+        /* 統計與卡片 */
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
         .stat-card { background: white; padding: 12px; border-radius: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .stat-label { font-size: 13px; font-weight: 900; color: #a1a1a1; margin-bottom: 4px; }
@@ -24,25 +38,22 @@
         .day-cell.today { border: 2px solid var(--theme-color); color: var(--theme-color); }
         .badge { position: absolute; top: -2px; right: -2px; background: white; color: var(--theme-color); font-size: 9px; min-width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; border: 1px solid var(--theme-color); box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
 
-        /* 滑動按鈕 */
+        /* 滑動互動 */
         .swipe-item { position: relative; overflow: hidden; border-radius: 16px; margin-bottom: 6px; background: #f0f0f0; }
         .btn-action { position: absolute; top: 0; bottom: 0; width: 64px; display: flex; align-items: center; justify-content: center; font-weight: 900; color: white; z-index: 1; }
         .btn-del { right: 0; background-color: #e5989b; }
         .btn-edit { left: 0; background-color: #b8c0ff; }
         .swipe-content { position: relative; z-index: 10; background: white; transition: transform 0.2s ease-out; }
         
-        .tab-btn { padding: 8px 0; font-weight: 900; font-size: 16px; color: #ccc; flex: 1; border-bottom: 3px solid transparent; }
+        .tab-btn { padding: 8px 0; font-weight: 900; font-size: 16px; color: #ccc; flex: 1; border-bottom: 3px solid transparent; transition: 0.3s; }
         .tab-btn.active { color: var(--text-color); border-bottom-color: var(--theme-color); }
 
         .chip-btn { border: 1px solid #eee; color: #888; padding: 6px 14px; border-radius: 50px; font-size: 13px; font-weight: 700; background: white; }
         .chip-btn.selected { background-color: var(--theme-color) !important; color: white !important; border-color: var(--theme-color) !important; }
 
-        /* 右上角選單 */
         #settings-menu { position: absolute; top: 60px; right: 20px; background: white; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 220px; z-index: 50; overflow: hidden; border: 1px solid #eee; }
         .setting-opt { padding: 12px; font-weight: 700; font-size: 14px; border-bottom: 1px solid #f9f9f9; width: 100%; text-align: left; display: flex; align-items: center; gap: 8px; }
         .uid-box { padding: 10px; background: #f8f8f8; font-size: 10px; word-break: break-all; color: #999; font-family: monospace; border-bottom: 1px solid #eee; }
-        
-        #copy-toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: white; padding: 8px 20px; border-radius: 50px; font-size: 12px; font-weight: bold; z-index: 300; display: none; }
     </style>
 </head>
 <body class="h-[100dvh] flex flex-col overflow-hidden">
@@ -52,7 +63,7 @@
         LOADING...
     </div>
 
-    <div id="copy-toast">已複製 UID</div>
+    <div id="copy-toast" class="fixed bottom-[100px] left-1/2 -translate-x-1/2 bg-black/80 text-white px-5 py-2 rounded-full text-xs font-bold z-[300] hidden">已複製 UID</div>
 
     <div class="flex-none p-4 pb-0 z-10 relative">
         <div class="flex justify-between items-start mb-3">
@@ -128,16 +139,16 @@
         </div>
     </div>
 
-    <div id="day-detail-modal" class="fixed inset-0 bg-black/30 backdrop-blur-sm hidden items-end sm:items-center justify-center z-[100] transition-opacity opacity-0" onclick="if(event.target === this) closeDayDetail()">
-        <div class="bg-white w-full sm:w-[380px] rounded-t-3xl sm:rounded-3xl max-h-[75vh] flex flex-col shadow-2xl transform translate-y-full transition-transform" id="day-detail-modal-content">
+    <div id="day-detail-modal" class="fixed inset-0 bg-black/30 backdrop-blur-sm hidden items-end sm:items-center justify-center z-[100] transition-opacity duration-300" onclick="if(event.target === this) closeDayDetail()">
+        <div class="bg-white w-full sm:w-[380px] rounded-t-3xl sm:rounded-3xl max-h-[75vh] flex flex-col shadow-2xl transition-transform duration-300 translate-y-full" id="day-detail-modal-content">
             <div class="p-5 border-b border-gray-50 flex justify-between items-center"><span class="font-black text-xl text-gray-600" id="detail-date-title"></span><button onclick="closeDayDetail()"><i class="fas fa-times text-2xl opacity-20"></i></button></div>
             <div class="p-5 overflow-y-auto flex-grow no-scrollbar" id="day-records-list"></div>
         </div>
     </div>
 
-    <div id="entry-modal" class="fixed inset-0 bg-black/40 backdrop-blur-md hidden items-end sm:items-center justify-center z-[150] transition-opacity opacity-0" onclick="if(event.target === this) closeEntryModal()">
-        <div class="bg-white w-full sm:w-[380px] rounded-t-3xl sm:rounded-3xl h-[85vh] flex flex-col shadow-2xl transform translate-y-full transition-transform" id="entry-modal-content">
-            <div class="flex-none p-6 pb-2"><div class="flex justify-between items-center mb-3"><span class="font-black text-xl" id="form-title">紀錄</span><button onclick="closeEntryModal()" class="opacity-20"><i class="fas fa-times text-xl"></i></button></div><input type="text" id="input-date-text" class="w-full bg-gray-50 border-b-2 border-theme p-3 font-black text-lg outline-none rounded-xl" style="border-color: var(--theme-color)"></div>
+    <div id="entry-modal" class="fixed inset-0 bg-black/40 backdrop-blur-md hidden items-end sm:items-center justify-center z-[150] transition-opacity duration-300" onclick="if(event.target === this) closeEntryModal()">
+        <div class="bg-white w-full sm:w-[380px] rounded-t-3xl sm:rounded-3xl h-[85vh] flex flex-col shadow-2xl transition-transform duration-300 translate-y-full" id="entry-modal-content">
+            <div class="flex-none p-6 pb-2"><div class="flex justify-between items-center mb-3"><span class="font-black text-xl" id="form-title">紀錄</span><button onclick="closeEntryModal()" class="opacity-20"><i class="fas fa-times text-xl"></i></button></div><input type="text" id="input-date-text" class="w-full bg-gray-50 border-b-2 border-theme p-3 font-black text-lg outline-none rounded-xl"></div>
             <div class="p-6 pt-2 space-y-4 overflow-y-auto no-scrollbar flex-grow">
                 <div class="grid grid-cols-2 gap-3">
                     <div><label class="text-xs font-black text-gray-400 mb-1 block">店名</label><input type="text" id="input-shop" class="w-full bg-gray-50 rounded-xl p-3 outline-none font-black border-none" placeholder="50嵐"></div>
@@ -160,8 +171,10 @@
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
 
         const firebaseConfig = { 
-            apiKey: "AIzaSyCLwMbIgQaF_KWYNWruOrHDrMopGJFx470", appId: "1:994141313696:web:d14b3a97541fa6e0e207c5",
-            authDomain: "drink-diary-2026.firebaseapp.com", projectId: "drink-diary-2026"
+            apiKey: "AIzaSyCLwMbIgQaF_KWYNWruOrHDrMopGJFx470", 
+            appId: "1:994141313696:web:d14b3a97541fa6e0e207c5",
+            authDomain: "drink-diary-2026.firebaseapp.com", 
+            projectId: "drink-diary-2026"
         };
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -209,20 +222,22 @@
             const first = new Date(YEAR, currentMonth, 1).getDay();
             const days = new Date(YEAR, currentMonth + 1, 0).getDate();
             const todayStr = new Date().toISOString().split('T')[0];
+            
             for(let i=0; i<first; i++) grid.appendChild(Object.assign(document.createElement('div'), {className:"day-cell opacity-0"}));
             for(let d=1; d<=days; d++) {
                 const ds = `${YEAR}-${String(currentMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
                 const records = window.drinkDB[ds] || [];
                 const cell = document.createElement('div');
                 cell.className = `day-cell ${ds === todayStr ? 'today' : ''}`;
+                
                 if(records.length > 0) {
                     const isDeep = records.length >= 3;
-                    cell.style.background = isDeep ? window.userSettings.themeColor : `${window.userSettings.themeColor}30`;
+                    cell.style.background = isDeep ? 'var(--theme-color)' : `rgba(from var(--theme-color) r g b / 0.2)`;
                     cell.style.color = isDeep ? 'white' : 'inherit';
                 }
-                cell.innerHTML = `<span>${d}</span>`;
-                if(records.length > 1) cell.innerHTML += `<div class="badge">${records.length}</div>`;
-                cell.onclick = () => { if(records.length > 0) showDayDetail(ds); else openEntryForm(ds); };
+                
+                cell.innerHTML = `<span>${d}</span>${records.length > 1 ? `<div class="badge">${records.length}</div>` : ''}`;
+                cell.onclick = () => records.length > 0 ? showDayDetail(ds) : openEntryForm(ds);
                 grid.appendChild(cell);
             }
         }
@@ -238,7 +253,7 @@
         window.copyUID = () => {
             navigator.clipboard.writeText(activeUID).then(() => {
                 const t = document.getElementById('copy-toast');
-                t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 2000);
+                t.classList.remove('hidden'); setTimeout(() => t.classList.add('hidden'), 2000);
             });
         };
 
@@ -250,11 +265,11 @@
         };
 
         window.applyTheme = () => {
-            document.documentElement.style.setProperty('--bg-color', window.userSettings.bgColor);
-            document.documentElement.style.setProperty('--theme-color', window.userSettings.themeColor);
-            document.documentElement.style.setProperty('--text-color', window.userSettings.textColor);
-            document.body.style.backgroundColor = window.userSettings.bgColor;
-            document.querySelectorAll('.bg-theme').forEach(tag => tag.style.backgroundColor = window.userSettings.themeColor);
+            const r = document.documentElement;
+            r.style.setProperty('--bg-color', window.userSettings.bgColor);
+            r.style.setProperty('--theme-color', window.userSettings.themeColor);
+            r.style.setProperty('--text-color', window.userSettings.textColor);
+            document.querySelectorAll('.bg-theme').forEach(el => el.style.backgroundColor = window.userSettings.themeColor);
         };
 
         window.showDayDetail = (ds) => { 
@@ -263,6 +278,7 @@
             renderDayDetail(ds); 
             toggleModal('day-detail-modal', true); 
         };
+
         window.renderDayDetail = (ds) => { 
             const list = document.getElementById('day-records-list'); 
             list.innerHTML = ''; 
@@ -271,44 +287,54 @@
 
         window.openEntryForm = (ds, idx = null, event = null) => {
             if (event) event.stopPropagation();
-            let dStr = ds ? ds.replace(/-/g, '/') : new Date().toLocaleDateString('zh-TW', {year:'numeric', month:'2-digit', day:'2-digit'});
             editingIdx = idx;
-            document.getElementById('input-date-text').value = dStr;
+            document.getElementById('input-date-text').value = ds ? ds.replace(/-/g, '/') : new Date().toLocaleDateString('zh-TW', {year:'numeric', month:'2-digit', day:'2-digit'});
             clearForm(); 
             if(idx !== null && window.drinkDB[ds]) {
                 const r = window.drinkDB[ds][idx];
-                document.getElementById('input-shop').value = r.shop; document.getElementById('input-item').value = r.item; document.getElementById('input-price').value = r.price; document.getElementById('input-note').value = r.note || '';
-                selectedIce = r.ice; selectedSugar = r.sugar; updateChips('ice-options', selectedIce); updateChips('sugar-options', selectedSugar);
+                document.getElementById('input-shop').value = r.shop; 
+                document.getElementById('input-item').value = r.item; 
+                document.getElementById('input-price').value = r.price; 
+                document.getElementById('input-note').value = r.note || '';
+                selectedIce = r.ice; selectedSugar = r.sugar; 
+                updateChips('ice-options', selectedIce); updateChips('sugar-options', selectedSugar);
             }
             toggleModal('entry-modal', true);
         };
 
         window.saveEntry = () => {
-            const shop = document.getElementById('input-shop').value, item = document.getElementById('input-item').value, price = document.getElementById('input-price').value;
+            const shop = document.getElementById('input-shop').value.trim(), 
+                  item = document.getElementById('input-item').value.trim(), 
+                  price = parseInt(document.getElementById('input-price').value) || 0;
             let chosenDate = document.getElementById('input-date-text').value.replace(/\//g, '-');
+            
             if(!shop || !item || !price || !selectedIce || !selectedSugar) return alert('資訊不完整');
             if(!window.drinkDB[chosenDate]) window.drinkDB[chosenDate] = [];
+            
             const data = { shop, item, price, ice: selectedIce, sugar: selectedSugar, note: document.getElementById('input-note').value };
             if(editingIdx !== null) window.drinkDB[chosenDate][editingIdx] = data; else window.drinkDB[chosenDate].push(data);
+            
             window.saveData(); closeEntryModal(); closeDayDetail();
         };
 
         function createSwipeItem(record, date, idx, isYear) {
             const wrapper = document.createElement('div'); wrapper.className = 'swipe-item';
             let actions = isYear ? '' : `<div class="btn-action btn-del" onclick="delRec('${date}',${idx})"><span>刪除</span></div><div class="btn-action btn-edit" onclick="openEntryForm('${date}',${idx}, event)"><span>更新</span></div>`;
-            wrapper.innerHTML = `${actions}<div class="swipe-content p-4 flex justify-between items-center"><div><div class="text-[9px] font-black opacity-30">${date.replace(/-/g, '/')}</div><div class="font-black text-base">${record.shop} · ${record.item}</div><div class="text-xs opacity-50 font-bold">${record.ice}/${record.sugar}${record.note ? ' · '+record.note : ''}</div></div><div class="text-xl font-black" style="color:var(--theme-color)">$${record.price}</div></div>`;
+            wrapper.innerHTML = `${actions}<div class="swipe-content p-4 flex justify-between items-center"><div><div class="text-[9px] font-black opacity-30">${date.replace(/-/g, '/')}</div><div class="font-black text-base">${record.shop} · ${record.item}</div><div class="text-xs opacity-50 font-bold">${record.ice}/${record.sugar}${record.note ? ' · '+record.note : ''}</div></div><div class="text-xl font-black text-theme">$${record.price}</div></div>`;
+            
             if (!isYear) {
                 const content = wrapper.querySelector('.swipe-content');
                 let startX = 0, currentX = 0;
                 content.ontouchstart = (e) => { startX = e.touches[0].pageX; content.style.transition = 'none'; };
                 content.ontouchmove = (e) => { currentX = e.touches[0].pageX - startX; if(currentX < -64) currentX = -64; if(currentX > 64) currentX = 64; content.style.transform = `translateX(${currentX}px)`; };
-                content.ontouchend = () => { content.style.transition = '0.2s'; if(currentX < -32) content.style.transform = 'translateX(-64px)'; else if(currentX > 32) content.style.transform = 'translateX(64px)'; else content.style.transform = 'translateX(0px)'; currentX = 0; };
+                content.ontouchend = () => { content.style.transition = '0.2s'; content.style.transform = (currentX < -32) ? 'translateX(-64px)' : (currentX > 32) ? 'translateX(64px)' : 'translateX(0px)'; currentX = 0; };
             }
             return wrapper;
         }
 
-        window.delRec = (d, i) => { window.drinkDB[d].splice(i, 1); if(!window.drinkDB[d].length) delete window.drinkDB[d]; window.saveData(); };
-        window.toggleSort = () => { sortOrder = sortOrder === 'desc' ? 'asc' : 'desc'; document.getElementById('sort-icon').className = sortOrder === 'desc' ? 'fas fa-sort-amount-down' : 'fas fa-sort-amount-up'; renderList(); };
+        window.delRec = (d, i) => { if(confirm('確定刪除？')) { window.drinkDB[d].splice(i, 1); if(!window.drinkDB[d].length) delete window.drinkDB[d]; window.saveData(); }};
+        window.toggleSort = () => { sortOrder = sortOrder === 'desc' ? 'asc' : 'desc'; document.getElementById('sort-icon').className = `fas fa-sort-amount-${sortOrder === 'desc' ? 'down' : 'up'}`; renderList(); };
+        
         window.renderList = () => {
             const container = document.getElementById('list-items-container'); if(!container) return; container.innerHTML = '';
             let all = []; const mPrefix = `${YEAR}-${String(currentMonth+1).padStart(2,'0')}`;
@@ -316,11 +342,13 @@
             all.sort((a,b) => sortOrder === 'desc' ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date));
             all.forEach(r => container.appendChild(createSwipeItem(r, r.date, r.idx, listType==='year')));
         };
+
         window.updateStats = () => {
             let mc=0, m$=0, yc=0, y$=0; const mPrefix = `${YEAR}-${String(currentMonth+1).padStart(2,'0')}`;
             Object.keys(window.drinkDB).forEach(d => { window.drinkDB[d].forEach(r => { const p = parseInt(r.price)||0; yc++; y$+=p; if(d.startsWith(mPrefix)) { mc++; m$+=p; } }); });
             document.getElementById('month-cups').innerText = mc; document.getElementById('month-cost').innerText = m$; document.getElementById('year-cups').innerText = yc; document.getElementById('year-cost').innerText = y$;
         };
+
         window.toggleSettings = (e) => { e.stopPropagation(); document.getElementById('settings-menu').classList.toggle('hidden'); };
         window.changeTheme = (bg, theme, text) => { window.userSettings = { bgColor: bg, themeColor: theme, textColor: text }; window.saveData(); applyTheme(); };
         window.hideLoading = () => document.getElementById('loading-screen').classList.add('hidden');
@@ -328,14 +356,56 @@
         window.openQuickAdd = () => openEntryForm(null);
         window.closeEntryModal = () => { editingIdx = null; toggleModal('entry-modal', false); };
         window.closeDayDetail = () => toggleModal('day-detail-modal', false);
-        window.switchView = (v) => { document.getElementById('calendar-view-container').classList.toggle('hidden', v==='list'); document.getElementById('list-view-container').classList.toggle('hidden', v==='calendar'); document.getElementById('tab-calendar').classList.toggle('active', v==='calendar'); document.getElementById('tab-list').classList.toggle('active', v==='list'); };
-        window.switchListType = (t) => { listType = t; document.getElementById('subtab-month').className = t === 'month' ? 'bg-white py-1.5 flex-1 rounded-full font-black shadow-sm text-xs' : 'text-gray-300 py-1.5 flex-1 rounded-full font-black text-xs'; document.getElementById('subtab-year').className = t === 'year' ? 'bg-white py-1.5 flex-1 rounded-full font-black shadow-sm text-xs' : 'text-gray-300 py-1.5 flex-1 rounded-full font-black text-xs'; renderList(); };
-        window.clearForm = () => { document.getElementById('input-shop').value = ''; document.getElementById('input-item').value = ''; document.getElementById('input-price').value = ''; document.getElementById('input-note').value = ''; selectedIce = ''; selectedSugar = ''; document.querySelectorAll('.chip-btn').forEach(c => c.classList.remove('selected')); };
+        
+        window.switchView = (v) => {
+            const isCal = v === 'calendar';
+            document.getElementById('calendar-view-container').classList.toggle('hidden', !isCal);
+            document.getElementById('list-view-container').classList.toggle('hidden', isCal);
+            document.getElementById('tab-calendar').classList.toggle('active', isCal);
+            document.getElementById('tab-list').classList.toggle('active', !isCal);
+        };
+
+        window.switchListType = (t) => {
+            listType = t;
+            const updateTab = (id, active) => document.getElementById(id).className = active ? 'bg-white py-1.5 flex-1 rounded-full font-black shadow-sm text-xs' : 'text-gray-300 py-1.5 flex-1 rounded-full font-black text-xs';
+            updateTab('subtab-month', t === 'month');
+            updateTab('subtab-year', t === 'year');
+            renderList();
+        };
+
+        window.clearForm = () => {
+            ['input-shop', 'input-item', 'input-price', 'input-note'].forEach(id => document.getElementById(id).value = '');
+            selectedIce = ''; selectedSugar = ''; 
+            document.querySelectorAll('.chip-btn').forEach(c => c.classList.remove('selected'));
+        };
+
         function updateChips(id, val) { Array.from(document.getElementById(id).children).forEach(c => c.classList.toggle('selected', c.innerText === val)); }
-        function toggleModal(id, show) { const m = document.getElementById(id), c = document.getElementById(id + '-content'); if(show) { m.classList.remove('hidden'); setTimeout(()=> { m.classList.remove('opacity-0'); if(c) c.classList.remove('translate-y-full'); }, 10); } else { m.classList.add('opacity-0'); if(c) c.classList.add('translate-y-full'); setTimeout(()=> m.classList.add('hidden'), 300); } }
-        const mkChip = (t, type) => { const b = document.createElement('button'); b.className = 'chip-btn'; b.innerText = t; b.onclick = (e) => { Array.from(e.target.parentElement.children).forEach(c=>c.classList.remove('selected')); e.target.classList.add('selected'); if(type==='ice') selectedIce=t; else selectedSugar=t; }; return b; };
+        
+        function toggleModal(id, show) {
+            const m = document.getElementById(id), c = document.getElementById(id + '-content');
+            if(show) {
+                m.classList.remove('hidden');
+                setTimeout(()=> { m.classList.replace('opacity-0', 'opacity-100'); if(c) c.classList.remove('translate-y-full'); }, 10);
+            } else {
+                m.classList.replace('opacity-100', 'opacity-0');
+                if(c) c.classList.add('translate-y-full');
+                setTimeout(()=> m.classList.add('hidden'), 300);
+            }
+        }
+
+        const mkChip = (t, type) => {
+            const b = document.createElement('button'); b.className = 'chip-btn'; b.innerText = t;
+            b.onclick = (e) => {
+                Array.from(e.target.parentElement.children).forEach(c=>c.classList.remove('selected'));
+                e.target.classList.add('selected');
+                if(type==='ice') selectedIce=t; else selectedSugar=t;
+            };
+            return b;
+        };
+
         ['固定', '正常', '少冰', '微冰', '去冰', '溫', '熱'].forEach(o => document.getElementById('ice-options').appendChild(mkChip(o, 'ice')));
         ['固定', '全糖', '少糖', '半糖', '微糖', '一分糖', '無糖'].forEach(o => document.getElementById('sugar-options').appendChild(mkChip(o, 'sugar')));
+        
         document.addEventListener('click', () => document.getElementById('settings-menu').classList.add('hidden'));
     </script>
 </body>
