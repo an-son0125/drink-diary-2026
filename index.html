@@ -15,11 +15,10 @@
         body { font-family: 'Noto Sans TC', sans-serif; background-color: var(--bg-color); color: var(--text-color); transition: all 0.3s ease; font-size: 14px; -webkit-text-size-adjust: 100%; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         
-        /* 修正圓角：強制所有平台底部皆為圓角 */
         .modal-content-rounded { 
             border-radius: 28px !important; 
             overflow: hidden !important;
-            margin-bottom: 20px; /* 在手機版底部留一點空隙確保圓角可見 */
+            margin-bottom: 20px;
         }
         @media (max-width: 640px) {
             .modal-content-rounded { 
@@ -44,7 +43,6 @@
         .btn-del { right: 0; background-color: #e5989b; }
         .btn-edit { left: 0; background-color: #b8c0ff; }
         .swipe-content { position: relative; z-index: 10; background: white; transition: transform 0.2s ease-out; cursor: grab; }
-        .swipe-content:active { cursor: grabbing; }
         
         .tab-btn { padding: 8px 0; font-weight: 900; font-size: 16px; color: #ccc; flex: 1; border-bottom: 3px solid transparent; }
         .tab-btn.active { color: var(--text-color); border-bottom-color: var(--theme-color); }
@@ -52,7 +50,19 @@
         .chip-btn { border: 1px solid #eee; color: #888; padding: 6px 14px; border-radius: 50px; font-size: 13px; font-weight: 700; background: white; }
         .chip-btn.selected { background-color: var(--theme-color) !important; color: white !important; border-color: var(--theme-color) !important; }
 
-        #settings-menu { position: absolute; top: 60px; right: 20px; background: white; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 220px; z-index: 50; overflow-y: auto; max-h-[70vh]; border: 1px solid #eee; }
+        #settings-menu { 
+            position: absolute; 
+            top: 60px; 
+            right: 20px; 
+            background: white; 
+            border-radius: 20px; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15); 
+            width: 220px; 
+            z-index: 200; 
+            overflow-y: auto; 
+            max-h-[70vh]; 
+            border: 1px solid #eee; 
+        }
         .setting-opt { padding: 12px; font-weight: 700; font-size: 14px; border-bottom: 1px solid #f9f9f9; width: 100%; text-align: left; display: flex; align-items: center; gap: 8px; }
         .uid-box { padding: 10px; background: #f8f8f8; font-size: 10px; word-break: break-all; color: #999; font-family: monospace; border-bottom: 1px solid #eee; }
         
@@ -61,7 +71,7 @@
 </head>
 <body class="h-[100dvh] flex flex-col overflow-hidden">
 
-    <div id="loading-screen" class="fixed inset-0 bg-white z-[200] flex flex-col items-center justify-center font-black text-gray-300">
+    <div id="loading-screen" class="fixed inset-0 bg-white z-[300] flex flex-col items-center justify-center font-black text-gray-300">
         <div class="w-10 h-10 border-4 border-gray-100 border-t-gray-400 rounded-full animate-spin mb-4"></div>
         LOADING...
     </div>
@@ -77,7 +87,7 @@
                 </h1>
                 <p class="text-[10px] font-black tracking-[0.2em] opacity-50 mt-0.5 ml-1">DRINK DIARY 2026</p>
             </div>
-            <button onclick="toggleSettings(event)" class="w-9 h-9 rounded-full bg-white shadow-sm flex items-center justify-center text-gray-400 border border-gray-100">
+            <button onclick="toggleSettings(event)" class="w-9 h-9 rounded-full bg-white shadow-sm flex items-center justify-center text-gray-400 border border-gray-100 relative z-[201]">
                 <i class="fas fa-sliders-h text-lg"></i>
             </button>
         </div>
@@ -142,7 +152,7 @@
         </div>
     </div>
 
-    <div id="day-detail-modal" class="fixed inset-0 bg-black/30 backdrop-blur-sm hidden items-end sm:items-center justify-center z-[100] transition-opacity opacity-0" onclick="if(event.target === this) closeDayDetail()">
+    <div id="day-detail-modal" class="fixed inset-0 bg-black/30 backdrop-blur-sm hidden items-end sm:items-center justify-center z-[150] transition-opacity opacity-0" onclick="if(event.target === this) closeDayDetail()">
         <div class="bg-white w-full sm:w-[380px] modal-content-rounded max-h-[75vh] flex flex-col shadow-2xl transform translate-y-full transition-transform" id="day-detail-modal-content">
             <div class="p-5 border-b border-gray-50 flex justify-between items-center">
                 <span class="font-black text-xl text-gray-600" id="detail-date-title"></span>
@@ -227,8 +237,7 @@
         };
 
         function renderCalendar() {
-            const grid = document.getElementById('calendar-grid'); 
-            if(!grid) return; grid.innerHTML = '';
+            const grid = document.getElementById('calendar-grid'); if(!grid) return; grid.innerHTML = '';
             const first = new Date(YEAR, currentMonth, 1).getDay();
             const days = new Date(YEAR, currentMonth + 1, 0).getDate();
             const todayStr = new Date().toISOString().split('T')[0];
@@ -251,7 +260,7 @@
         }
 
         window.resetAccount = async () => {
-            if(confirm('確定要登出並重設為新帳號嗎？現有數據不會遺失，但您需要記住 UID 才能再次登入。')){
+            if(confirm('確定要登出並重設為新帳號嗎？')){
                 localStorage.removeItem('custom_uid'); await signOut(auth); location.reload();
             }
         };
@@ -276,7 +285,6 @@
             document.documentElement.style.setProperty('--text-color', window.userSettings.textColor);
             document.body.style.backgroundColor = window.userSettings.bgColor;
             document.getElementById('theme-icon-box').style.backgroundColor = window.userSettings.themeColor;
-            document.querySelectorAll('.text-theme').forEach(el => el.style.color = window.userSettings.themeColor);
         };
 
         window.showDayDetail = (ds) => { 
@@ -285,8 +293,8 @@
             renderDayDetail(ds); toggleModal('day-detail-modal', true); 
         };
         window.renderDayDetail = (ds) => { 
-            const list = document.getElementById('day-records-list'); 
-            list.innerHTML = ''; (window.drinkDB[ds] || []).forEach((r, i) => list.appendChild(createSwipeItem(r, ds, i, false))); 
+            const list = document.getElementById('day-records-list'); list.innerHTML = ''; 
+            (window.drinkDB[ds] || []).forEach((r, i) => list.appendChild(createSwipeItem(r, ds, i, false))); 
         };
 
         window.batchAddFromDetail = () => { openEntryForm(currentViewingDate); };
@@ -316,13 +324,18 @@
             if(!document.getElementById('day-detail-modal').classList.contains('hidden')) renderDayDetail(chosenDate);
         };
 
-        function createSwipeItem(record, date, idx, isYear) {
+        function createSwipeItem(record, date, idx, isReadOnly) {
             const wrapper = document.createElement('div'); wrapper.className = 'swipe-item';
-            let actions = isYear ? '' : `<div class="btn-action btn-del" onclick="delRec('${date}',${idx})"><span>刪除</span></div><div class="btn-action btn-edit" onclick="openEntryForm('${date}',${idx}, event)"><span>更新</span></div>`;
+            // 修正 2: 如果是唯讀(年度模式)，則不產生按鈕 HTML
+            let actions = isReadOnly ? '' : `<div class="btn-action btn-del" onclick="delRec('${date}',${idx})"><span>刪除</span></div><div class="btn-action btn-edit" onclick="openEntryForm('${date}',${idx}, event)"><span>更新</span></div>`;
             const noteText = record.note ? ` · ${record.note}` : '';
             wrapper.innerHTML = `${actions}<div class="swipe-content p-4 flex justify-between items-center"><div><div class="text-[9px] font-black opacity-30">${date.replace(/-/g, '/')}</div><div class="font-black text-base">${record.shop} · ${record.item}</div><div class="text-xs opacity-50 font-bold" style="font-style: normal;">${record.ice}/${record.sugar}${noteText}</div></div><div class="text-xl font-black" style="color:var(--theme-color)">$${record.price}</div></div>`;
             
             const content = wrapper.querySelector('.swipe-content');
+            
+            // 如果是唯讀(年度模式)，不綁定滑動事件
+            if (isReadOnly) return wrapper;
+
             let startX = 0, currentX = 0, isDragging = false;
 
             const onStart = (e) => { startX = (e.touches ? e.touches[0].pageX : e.pageX); content.style.transition = 'none'; isDragging = true; };
@@ -346,21 +359,29 @@
             content.addEventListener('touchmove', onMove);
             content.addEventListener('touchend', onEnd);
             content.addEventListener('mousedown', onStart);
-            window.addEventListener('mousemove', onMove);
-            window.addEventListener('mouseup', onEnd);
-
+            window.addEventListener('mousemove', (e) => onMove(e));
+            window.addEventListener('mouseup', () => onEnd());
             return wrapper;
         }
 
-        window.delRec = (d, i) => { if(confirm('確定刪除？')) { window.drinkDB[d].splice(i, 1); if(!window.drinkDB[d].length) delete window.drinkDB[d]; window.saveData(); }};
+        // 修正 1: 取消刪除確定的彈窗
+        window.delRec = (d, i) => { 
+            window.drinkDB[d].splice(i, 1); 
+            if(!window.drinkDB[d].length) delete window.drinkDB[d]; 
+            window.saveData(); 
+        };
+
         window.toggleSort = () => { sortOrder = sortOrder === 'desc' ? 'asc' : 'desc'; document.getElementById('sort-icon').className = sortOrder === 'desc' ? 'fas fa-sort-amount-down' : 'fas fa-sort-amount-up'; renderList(); };
+        
         window.renderList = () => {
             const container = document.getElementById('list-items-container'); if(!container) return; container.innerHTML = '';
             let all = []; const mPrefix = `${YEAR}-${String(currentMonth+1).padStart(2,'0')}`;
             Object.keys(window.drinkDB).forEach(d => { if (listType === 'month' && !d.startsWith(mPrefix)) return; window.drinkDB[d].forEach((r, i) => all.push({...r, date: d, idx: i})); });
             all.sort((a,b) => sortOrder === 'desc' ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date));
-            all.forEach(r => container.appendChild(createSwipeItem(r, r.date, r.idx, false)));
+            // 修正 2: 傳遞唯讀狀態給 createSwipeItem
+            all.forEach(r => container.appendChild(createSwipeItem(r, r.date, r.idx, listType === 'year')));
         };
+
         window.updateStats = () => {
             let mc=0, m$=0, yc=0, y$=0; const mPrefix = `${YEAR}-${String(currentMonth+1).padStart(2,'0')}`;
             Object.keys(window.drinkDB).forEach(d => { window.drinkDB[d].forEach(r => { const p = parseInt(r.price)||0; yc++; y$+=p; if(d.startsWith(mPrefix)) { mc++; m$+=p; } }); });
