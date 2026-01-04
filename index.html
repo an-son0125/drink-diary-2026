@@ -50,23 +50,24 @@
         .chip-btn { border: 1px solid #eee; color: #888; padding: 6px 14px; border-radius: 50px; font-size: 13px; font-weight: 700; background: white; }
         .chip-btn.selected { background-color: var(--theme-color) !important; color: white !important; border-color: var(--theme-color) !important; }
 
+        /* 修正核心：將選單層級調至最高，確保不被清單條目遮擋 */
         #settings-menu { 
             position: absolute; 
             top: 60px; 
             right: 20px; 
             background: white; 
             border-radius: 20px; 
-            box-shadow: 0 15px 35px rgba(0,0,0,0.15); 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2); 
             width: 220px; 
-            z-index: 200; 
+            z-index: 500; 
             overflow-y: auto; 
-            max-h-[70vh]; 
+            max-height: 70vh; 
             border: 1px solid #eee; 
         }
         .setting-opt { padding: 12px; font-weight: 700; font-size: 14px; border-bottom: 1px solid #f9f9f9; width: 100%; text-align: left; display: flex; align-items: center; gap: 8px; }
         .uid-box { padding: 10px; background: #f8f8f8; font-size: 10px; word-break: break-all; color: #999; font-family: monospace; border-bottom: 1px solid #eee; }
         
-        #copy-toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: white; padding: 8px 20px; border-radius: 50px; font-size: 12px; font-weight: bold; z-index: 300; display: none; }
+        #copy-toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: white; padding: 8px 20px; border-radius: 50px; font-size: 12px; font-weight: bold; z-index: 600; display: none; }
     </style>
 </head>
 <body class="h-[100dvh] flex flex-col overflow-hidden">
@@ -78,7 +79,7 @@
 
     <div id="copy-toast">已複製 UID</div>
 
-    <div class="flex-none p-4 pb-0 z-10 relative">
+    <div class="flex-none p-4 pb-0 z-50 relative">
         <div class="flex justify-between items-start mb-3">
             <div>
                 <h1 class="text-xl font-black flex items-center gap-2">
@@ -87,7 +88,7 @@
                 </h1>
                 <p class="text-[10px] font-black tracking-[0.2em] opacity-50 mt-0.5 ml-1">DRINK DIARY 2026</p>
             </div>
-            <button onclick="toggleSettings(event)" class="w-9 h-9 rounded-full bg-white shadow-sm flex items-center justify-center text-gray-400 border border-gray-100 relative z-[201]">
+            <button onclick="toggleSettings(event)" class="w-9 h-9 rounded-full bg-white shadow-sm flex items-center justify-center text-gray-400 border border-gray-100 relative z-[501]">
                 <i class="fas fa-sliders-h text-lg"></i>
             </button>
         </div>
@@ -168,7 +169,7 @@
     <div id="entry-modal" class="fixed inset-0 bg-black/40 backdrop-blur-md hidden items-end sm:items-center justify-center z-[150] transition-opacity opacity-0" onclick="if(event.target === this) closeEntryModal()">
         <div class="bg-white w-full sm:w-[380px] modal-content-rounded h-[85vh] flex flex-col shadow-2xl transform translate-y-full transition-transform" id="entry-modal-content">
             <div class="flex-none p-6 pb-2">
-                <div class="flex justify-between items-center mb-3"><span class="font-black text-xl" id="form-title">紀錄</span><button onclick="closeEntryModal()" class="opacity-20"><i class="fas fa-times text-xl"></i></button></div>
+                <div class="flex justify-between items-center mb-3"><span class="font-black text-xl" id="form-title">新增紀錄</span><button onclick="closeEntryModal()" class="opacity-20"><i class="fas fa-times text-xl"></i></button></div>
                 <input type="text" id="input-date-text" class="w-full bg-gray-50 border-b-2 p-3 font-black text-lg outline-none rounded-xl" style="border-color: var(--theme-color)">
             </div>
             <div class="p-6 pt-2 space-y-4 overflow-y-auto no-scrollbar flex-grow">
@@ -326,18 +327,14 @@
 
         function createSwipeItem(record, date, idx, isReadOnly) {
             const wrapper = document.createElement('div'); wrapper.className = 'swipe-item';
-            // 修正 2: 如果是唯讀(年度模式)，則不產生按鈕 HTML
             let actions = isReadOnly ? '' : `<div class="btn-action btn-del" onclick="delRec('${date}',${idx})"><span>刪除</span></div><div class="btn-action btn-edit" onclick="openEntryForm('${date}',${idx}, event)"><span>更新</span></div>`;
             const noteText = record.note ? ` · ${record.note}` : '';
             wrapper.innerHTML = `${actions}<div class="swipe-content p-4 flex justify-between items-center"><div><div class="text-[9px] font-black opacity-30">${date.replace(/-/g, '/')}</div><div class="font-black text-base">${record.shop} · ${record.item}</div><div class="text-xs opacity-50 font-bold" style="font-style: normal;">${record.ice}/${record.sugar}${noteText}</div></div><div class="text-xl font-black" style="color:var(--theme-color)">$${record.price}</div></div>`;
             
             const content = wrapper.querySelector('.swipe-content');
-            
-            // 如果是唯讀(年度模式)，不綁定滑動事件
             if (isReadOnly) return wrapper;
 
             let startX = 0, currentX = 0, isDragging = false;
-
             const onStart = (e) => { startX = (e.touches ? e.touches[0].pageX : e.pageX); content.style.transition = 'none'; isDragging = true; };
             const onMove = (e) => { 
                 if (!isDragging) return;
@@ -364,7 +361,6 @@
             return wrapper;
         }
 
-        // 修正 1: 取消刪除確定的彈窗
         window.delRec = (d, i) => { 
             window.drinkDB[d].splice(i, 1); 
             if(!window.drinkDB[d].length) delete window.drinkDB[d]; 
@@ -378,7 +374,6 @@
             let all = []; const mPrefix = `${YEAR}-${String(currentMonth+1).padStart(2,'0')}`;
             Object.keys(window.drinkDB).forEach(d => { if (listType === 'month' && !d.startsWith(mPrefix)) return; window.drinkDB[d].forEach((r, i) => all.push({...r, date: d, idx: i})); });
             all.sort((a,b) => sortOrder === 'desc' ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date));
-            // 修正 2: 傳遞唯讀狀態給 createSwipeItem
             all.forEach(r => container.appendChild(createSwipeItem(r, r.date, r.idx, listType === 'year')));
         };
 
