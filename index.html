@@ -10,16 +10,22 @@
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
         :root { --bg-color: #f4f1ea; --theme-color: #95a78d; --text-color: #5b5b5b; }
         
-        /* 停用縮放干擾 */
         * { touch-action: manipulation; }
         
         body { font-family: 'Noto Sans TC', sans-serif; background-color: var(--bg-color); color: var(--text-color); transition: all 0.3s ease; font-size: 14px; -webkit-text-size-adjust: 100%; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         
-        /* 圓角統一修正 */
-        .modal-content-rounded { border-radius: 24px 24px 24px 24px !important; }
+        /* 修正圓角：強制所有平台底部皆為圓角 */
+        .modal-content-rounded { 
+            border-radius: 28px !important; 
+            overflow: hidden !important;
+            margin-bottom: 20px; /* 在手機版底部留一點空隙確保圓角可見 */
+        }
         @media (max-width: 640px) {
-            .modal-content-rounded { border-radius: 24px 24px 0 0 !important; }
+            .modal-content-rounded { 
+                margin-bottom: 10px;
+                width: calc(100% - 20px) !important;
+            }
         }
 
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
@@ -28,18 +34,17 @@
         .stat-value { font-size: 1.6rem; font-weight: 900; color: var(--theme-color); line-height: 1.1; }
         .stat-unit { font-size: 12px; font-weight: 700; color: #d1d1d1; margin-left: 2px; }
         
-        /* 日曆 */
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
         .day-cell { aspect-ratio: 1/1; border-radius: 14px; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; background: white; border: 1px solid rgba(0,0,0,0.02); position: relative; cursor: pointer; }
         .day-cell.today { border: 2px solid var(--theme-color); color: var(--theme-color); }
         .badge { position: absolute; top: -2px; right: -2px; background: white; color: var(--theme-color); font-size: 9px; min-width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; border: 1px solid var(--theme-color); box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
 
-        /* 滑動按鈕 */
-        .swipe-item { position: relative; overflow: hidden; border-radius: 16px; margin-bottom: 6px; background: #f0f0f0; }
-        .btn-action { position: absolute; top: 0; bottom: 0; width: 64px; display: flex; align-items: center; justify-content: center; font-weight: 900; color: white; z-index: 1; }
+        .swipe-item { position: relative; overflow: hidden; border-radius: 16px; margin-bottom: 6px; background: #f0f0f0; user-select: none; }
+        .btn-action { position: absolute; top: 0; bottom: 0; width: 64px; display: flex; align-items: center; justify-content: center; font-weight: 900; color: white; z-index: 1; cursor: pointer; }
         .btn-del { right: 0; background-color: #e5989b; }
         .btn-edit { left: 0; background-color: #b8c0ff; }
-        .swipe-content { position: relative; z-index: 10; background: white; transition: transform 0.2s ease-out; }
+        .swipe-content { position: relative; z-index: 10; background: white; transition: transform 0.2s ease-out; cursor: grab; }
+        .swipe-content:active { cursor: grabbing; }
         
         .tab-btn { padding: 8px 0; font-weight: 900; font-size: 16px; color: #ccc; flex: 1; border-bottom: 3px solid transparent; }
         .tab-btn.active { color: var(--text-color); border-bottom-color: var(--theme-color); }
@@ -47,7 +52,6 @@
         .chip-btn { border: 1px solid #eee; color: #888; padding: 6px 14px; border-radius: 50px; font-size: 13px; font-weight: 700; background: white; }
         .chip-btn.selected { background-color: var(--theme-color) !important; color: white !important; border-color: var(--theme-color) !important; }
 
-        /* 右上角選單優化滑動 */
         #settings-menu { position: absolute; top: 60px; right: 20px; background: white; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 220px; z-index: 50; overflow-y: auto; max-h-[70vh]; border: 1px solid #eee; }
         .setting-opt { padding: 12px; font-weight: 700; font-size: 14px; border-bottom: 1px solid #f9f9f9; width: 100%; text-align: left; display: flex; align-items: center; gap: 8px; }
         .uid-box { padding: 10px; background: #f8f8f8; font-size: 10px; word-break: break-all; color: #999; font-family: monospace; border-bottom: 1px solid #eee; }
@@ -285,9 +289,7 @@
             list.innerHTML = ''; (window.drinkDB[ds] || []).forEach((r, i) => list.appendChild(createSwipeItem(r, ds, i, false))); 
         };
 
-        window.batchAddFromDetail = () => {
-            openEntryForm(currentViewingDate);
-        };
+        window.batchAddFromDetail = () => { openEntryForm(currentViewingDate); };
 
         window.openEntryForm = (ds, idx = null, event = null) => {
             if (event) event.stopPropagation();
@@ -317,27 +319,47 @@
         function createSwipeItem(record, date, idx, isYear) {
             const wrapper = document.createElement('div'); wrapper.className = 'swipe-item';
             let actions = isYear ? '' : `<div class="btn-action btn-del" onclick="delRec('${date}',${idx})"><span>刪除</span></div><div class="btn-action btn-edit" onclick="openEntryForm('${date}',${idx}, event)"><span>更新</span></div>`;
-            // 這裡顯示我的心情（備註），移除了斜體字樣式
             const noteText = record.note ? ` · ${record.note}` : '';
             wrapper.innerHTML = `${actions}<div class="swipe-content p-4 flex justify-between items-center"><div><div class="text-[9px] font-black opacity-30">${date.replace(/-/g, '/')}</div><div class="font-black text-base">${record.shop} · ${record.item}</div><div class="text-xs opacity-50 font-bold" style="font-style: normal;">${record.ice}/${record.sugar}${noteText}</div></div><div class="text-xl font-black" style="color:var(--theme-color)">$${record.price}</div></div>`;
-            if (!isYear) {
-                const content = wrapper.querySelector('.swipe-content');
-                let startX = 0, currentX = 0;
-                content.ontouchstart = (e) => { startX = e.touches[0].pageX; content.style.transition = 'none'; };
-                content.ontouchmove = (e) => { currentX = e.touches[0].pageX - startX; if(currentX < -64) currentX = -64; if(currentX > 64) currentX = 64; content.style.transform = `translateX(${currentX}px)`; };
-                content.ontouchend = () => { content.style.transition = '0.2s'; if(currentX < -32) content.style.transform = 'translateX(-64px)'; else if(currentX > 32) content.style.transform = 'translateX(64px)'; else content.style.transform = 'translateX(0px)'; currentX = 0; };
-            }
+            
+            const content = wrapper.querySelector('.swipe-content');
+            let startX = 0, currentX = 0, isDragging = false;
+
+            const onStart = (e) => { startX = (e.touches ? e.touches[0].pageX : e.pageX); content.style.transition = 'none'; isDragging = true; };
+            const onMove = (e) => { 
+                if (!isDragging) return;
+                currentX = (e.touches ? e.touches[0].pageX : e.pageX) - startX; 
+                if(currentX < -64) currentX = -64; if(currentX > 64) currentX = 64; 
+                content.style.transform = `translateX(${currentX}px)`; 
+            };
+            const onEnd = () => { 
+                if (!isDragging) return;
+                isDragging = false;
+                content.style.transition = '0.2s'; 
+                if(currentX < -32) content.style.transform = 'translateX(-64px)'; 
+                else if(currentX > 32) content.style.transform = 'translateX(64px)'; 
+                else content.style.transform = 'translateX(0px)'; 
+                currentX = 0; 
+            };
+
+            content.addEventListener('touchstart', onStart);
+            content.addEventListener('touchmove', onMove);
+            content.addEventListener('touchend', onEnd);
+            content.addEventListener('mousedown', onStart);
+            window.addEventListener('mousemove', onMove);
+            window.addEventListener('mouseup', onEnd);
+
             return wrapper;
         }
 
-        window.delRec = (d, i) => { window.drinkDB[d].splice(i, 1); if(!window.drinkDB[d].length) delete window.drinkDB[d]; window.saveData(); };
+        window.delRec = (d, i) => { if(confirm('確定刪除？')) { window.drinkDB[d].splice(i, 1); if(!window.drinkDB[d].length) delete window.drinkDB[d]; window.saveData(); }};
         window.toggleSort = () => { sortOrder = sortOrder === 'desc' ? 'asc' : 'desc'; document.getElementById('sort-icon').className = sortOrder === 'desc' ? 'fas fa-sort-amount-down' : 'fas fa-sort-amount-up'; renderList(); };
         window.renderList = () => {
             const container = document.getElementById('list-items-container'); if(!container) return; container.innerHTML = '';
             let all = []; const mPrefix = `${YEAR}-${String(currentMonth+1).padStart(2,'0')}`;
             Object.keys(window.drinkDB).forEach(d => { if (listType === 'month' && !d.startsWith(mPrefix)) return; window.drinkDB[d].forEach((r, i) => all.push({...r, date: d, idx: i})); });
             all.sort((a,b) => sortOrder === 'desc' ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date));
-            all.forEach(r => container.appendChild(createSwipeItem(r, r.date, r.idx, false))); // 強制讓年度模式也顯示細節，或依需求調整
+            all.forEach(r => container.appendChild(createSwipeItem(r, r.date, r.idx, false)));
         };
         window.updateStats = () => {
             let mc=0, m$=0, yc=0, y$=0; const mPrefix = `${YEAR}-${String(currentMonth+1).padStart(2,'0')}`;
