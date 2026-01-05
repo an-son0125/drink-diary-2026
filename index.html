@@ -68,6 +68,11 @@
         .uid-box { padding: 10px; background: #f8f8f8; font-size: 10px; word-break: break-all; color: #999; font-family: monospace; border-bottom: 1px solid #eee; }
         
         #copy-toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: white; padding: 8px 20px; border-radius: 50px; font-size: 12px; font-weight: bold; z-index: 600; display: none; }
+        
+        /* 新增回購按鈕樣式 */
+        .repurchase-btn { flex: 1; border: 1px solid #eee; border-radius: 12px; padding: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; transition: all 0.2s; background: white; color: #ddd; }
+        .repurchase-btn.active-yes { background-color: #ffdde1; color: #ff5c5c; border-color: #ffdde1; }
+        .repurchase-btn.active-no { background-color: #f0f0f0; color: #999; border-color: #ccc; }
     </style>
 </head>
 <body class="h-[100dvh] flex flex-col overflow-hidden">
@@ -180,6 +185,13 @@
                 <div><label class="text-xs font-black text-gray-400 mb-1 block">價格</label><input type="number" id="input-price" class="w-full bg-gray-50 rounded-xl p-3 font-black text-xl outline-none border-none" placeholder="$"></div>
                 <div><label class="text-xs font-black text-gray-400 mb-2 block">冰塊</label><div class="flex flex-wrap gap-1" id="ice-options"></div></div>
                 <div><label class="text-xs font-black text-gray-400 mb-2 block">甜度</label><div class="flex flex-wrap gap-1" id="sugar-options"></div></div>
+                <div>
+                    <label class="text-xs font-black text-gray-400 mb-2 block">回購</label>
+                    <div class="flex gap-2">
+                        <button id="btn-repurchase-yes" onclick="setRepurchase(true)" class="repurchase-btn"><i class="fas fa-heart"></i></button>
+                        <button id="btn-repurchase-no" onclick="setRepurchase(false)" class="repurchase-btn"><i class="fas fa-heart-broken"></i></button>
+                    </div>
+                </div>
                 <div><label class="text-xs font-black text-gray-400 mb-1 block">我的心情</label><textarea id="input-note" class="w-full bg-gray-50 rounded-xl p-3 text-sm font-bold outline-none border-none" rows="2"></textarea></div>
             </div>
             <div class="p-6 flex gap-3"><button onclick="clearForm()" class="px-4 font-black text-gray-400 text-sm">清空</button><button onclick="saveEntry()" class="flex-1 text-white font-black py-4 rounded-xl shadow-lg text-lg" style="background-color: var(--theme-color)">儲存紀錄</button></div>
@@ -204,6 +216,7 @@
         window.drinkDB = {};
         window.userSettings = { bgColor: '#f4f1ea', themeColor: '#95a78d', textColor: '#5b5b5b' };
         let unsubscribeSync = null, currentMonth = new Date().getMonth(), currentViewingDate = '', listType = 'month', editingIdx = null, selectedIce = '', selectedSugar = '', sortOrder = 'desc', activeUID = null;
+        let selectedRepurchase = null; // null, true, false
         const YEAR = 2026;
 
         onAuthStateChanged(auth, (user) => { 
@@ -300,6 +313,14 @@
 
         window.batchAddFromDetail = () => { openEntryForm(currentViewingDate); };
 
+        window.setRepurchase = (val) => {
+            selectedRepurchase = val;
+            const btnYes = document.getElementById('btn-repurchase-yes');
+            const btnNo = document.getElementById('btn-repurchase-no');
+            btnYes.classList.toggle('active-yes', val === true);
+            btnNo.classList.toggle('active-no', val === false);
+        };
+
         window.openEntryForm = (ds, idx = null, event = null) => {
             if (event) event.stopPropagation();
             let dStr = ds ? ds.replace(/-/g, '/') : new Date().toLocaleDateString('zh-TW', {year:'numeric', month:'2-digit', day:'2-digit'});
@@ -310,6 +331,7 @@
                 const r = window.drinkDB[ds][idx];
                 document.getElementById('input-shop').value = r.shop; document.getElementById('input-item').value = r.item; document.getElementById('input-price').value = r.price; document.getElementById('input-note').value = r.note || '';
                 selectedIce = r.ice; selectedSugar = r.sugar; updateChips('ice-options', selectedIce); updateChips('sugar-options', selectedSugar);
+                window.setRepurchase(r.repurchase === undefined ? null : r.repurchase);
             }
             toggleModal('entry-modal', true);
         };
@@ -319,7 +341,11 @@
             let chosenDate = document.getElementById('input-date-text').value.replace(/\//g, '-');
             if(!shop || !item || !price || !selectedIce || !selectedSugar) return alert('資訊不完整');
             if(!window.drinkDB[chosenDate]) window.drinkDB[chosenDate] = [];
-            const data = { shop, item, price, ice: selectedIce, sugar: selectedSugar, note: document.getElementById('input-note').value };
+            const data = { 
+                shop, item, price, ice: selectedIce, sugar: selectedSugar, 
+                note: document.getElementById('input-note').value,
+                repurchase: selectedRepurchase
+            };
             if(editingIdx !== null) window.drinkDB[chosenDate][editingIdx] = data; else window.drinkDB[chosenDate].push(data);
             window.saveData(); closeEntryModal(); 
             if(!document.getElementById('day-detail-modal').classList.contains('hidden')) renderDayDetail(chosenDate);
@@ -329,7 +355,13 @@
             const wrapper = document.createElement('div'); wrapper.className = 'swipe-item';
             let actions = isReadOnly ? '' : `<div class="btn-action btn-del" onclick="delRec('${date}',${idx})"><span>刪除</span></div><div class="btn-action btn-edit" onclick="openEntryForm('${date}',${idx}, event)"><span>更新</span></div>`;
             const noteText = record.note ? ` · ${record.note}` : '';
-            wrapper.innerHTML = `${actions}<div class="swipe-content p-4 flex justify-between items-center"><div><div class="text-[9px] font-black opacity-30">${date.replace(/-/g, '/')}</div><div class="font-black text-base">${record.shop} · ${record.item}</div><div class="text-xs opacity-50 font-bold" style="font-style: normal;">${record.ice}/${record.sugar}${noteText}</div></div><div class="text-xl font-black" style="color:var(--theme-color)">$${record.price}</div></div>`;
+            
+            // Repurchase Icon Logic
+            let repIcon = '';
+            if (record.repurchase === true) repIcon = `<i class="fas fa-heart text-red-400 ml-2"></i>`;
+            else if (record.repurchase === false) repIcon = `<i class="fas fa-heart-broken text-gray-300 ml-2"></i>`;
+
+            wrapper.innerHTML = `${actions}<div class="swipe-content p-4 flex justify-between items-center"><div><div class="text-[9px] font-black opacity-30">${date.replace(/-/g, '/')}</div><div class="font-black text-base flex items-center">${record.shop} · ${record.item} ${repIcon}</div><div class="text-xs opacity-50 font-bold" style="font-style: normal;">${record.ice}/${record.sugar}${noteText}</div></div><div class="text-xl font-black" style="color:var(--theme-color)">$${record.price}</div></div>`;
             
             const content = wrapper.querySelector('.swipe-content');
             if (isReadOnly) return wrapper;
@@ -372,7 +404,34 @@
         window.renderList = () => {
             const container = document.getElementById('list-items-container'); if(!container) return; container.innerHTML = '';
             let all = []; const mPrefix = `${YEAR}-${String(currentMonth+1).padStart(2,'0')}`;
-            Object.keys(window.drinkDB).forEach(d => { if (listType === 'month' && !d.startsWith(mPrefix)) return; window.drinkDB[d].forEach((r, i) => all.push({...r, date: d, idx: i})); });
+            
+            let listTotalCups = 0;
+            let listTotalCost = 0;
+
+            Object.keys(window.drinkDB).forEach(d => { 
+                if (listType === 'month' && !d.startsWith(mPrefix)) return; 
+                window.drinkDB[d].forEach((r, i) => {
+                    all.push({...r, date: d, idx: i});
+                    listTotalCups++;
+                    listTotalCost += (parseInt(r.price) || 0);
+                }); 
+            });
+            
+            // Add List Stats Header
+            const summaryDiv = document.createElement('div');
+            summaryDiv.className = "flex gap-4 mb-4 mt-2 px-2";
+            summaryDiv.innerHTML = `
+                <div class="flex-1 bg-white rounded-2xl p-3 flex flex-col items-center justify-center shadow-sm border border-gray-100">
+                    <div class="text-[10px] font-black text-gray-300">總杯數</div>
+                    <div class="text-xl font-black text-gray-600">${listTotalCups} <span class="text-[10px]">杯</span></div>
+                </div>
+                <div class="flex-1 bg-white rounded-2xl p-3 flex flex-col items-center justify-center shadow-sm border border-gray-100">
+                    <div class="text-[10px] font-black text-gray-300">總金額</div>
+                    <div class="text-xl font-black" style="color:var(--theme-color)">$${listTotalCost}</div>
+                </div>
+            `;
+            container.appendChild(summaryDiv);
+
             all.sort((a,b) => sortOrder === 'desc' ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date));
             all.forEach(r => container.appendChild(createSwipeItem(r, r.date, r.idx, listType === 'year')));
         };
@@ -391,7 +450,10 @@
         window.closeDayDetail = () => toggleModal('day-detail-modal', false);
         window.switchView = (v) => { document.getElementById('calendar-view-container').classList.toggle('hidden', v==='list'); document.getElementById('list-view-container').classList.toggle('hidden', v==='calendar'); document.getElementById('tab-calendar').classList.toggle('active', v==='calendar'); document.getElementById('tab-list').classList.toggle('active', v==='list'); };
         window.switchListType = (t) => { listType = t; document.getElementById('subtab-month').className = t === 'month' ? 'bg-white py-1.5 flex-1 rounded-full font-black shadow-sm text-xs' : 'text-gray-300 py-1.5 flex-1 rounded-full font-black text-xs'; document.getElementById('subtab-year').className = t === 'year' ? 'bg-white py-1.5 flex-1 rounded-full font-black shadow-sm text-xs' : 'text-gray-300 py-1.5 flex-1 rounded-full font-black text-xs'; renderList(); };
-        window.clearForm = () => { document.getElementById('input-shop').value = ''; document.getElementById('input-item').value = ''; document.getElementById('input-price').value = ''; document.getElementById('input-note').value = ''; selectedIce = ''; selectedSugar = ''; document.querySelectorAll('.chip-btn').forEach(c => c.classList.remove('selected')); };
+        window.clearForm = () => { 
+            document.getElementById('input-shop').value = ''; document.getElementById('input-item').value = ''; document.getElementById('input-price').value = ''; document.getElementById('input-note').value = ''; selectedIce = ''; selectedSugar = ''; document.querySelectorAll('.chip-btn').forEach(c => c.classList.remove('selected')); 
+            window.setRepurchase(null);
+        };
         function updateChips(id, val) { Array.from(document.getElementById(id).children).forEach(c => c.classList.toggle('selected', c.innerText === val)); }
         function toggleModal(id, show) { const m = document.getElementById(id), c = document.getElementById(id + '-content'); if(show) { m.classList.remove('hidden'); setTimeout(()=> { m.classList.remove('opacity-0'); if(c) c.classList.remove('translate-y-full'); }, 10); } else { m.classList.add('opacity-0'); if(c) c.classList.add('translate-y-full'); setTimeout(()=> m.classList.add('hidden'), 300); } }
         const mkChip = (t, type) => { const b = document.createElement('button'); b.className = 'chip-btn'; b.innerText = t; b.onclick = (e) => { Array.from(e.target.parentElement.children).forEach(c=>c.classList.remove('selected')); e.target.classList.add('selected'); if(type==='ice') selectedIce=t; else selectedSugar=t; }; return b; };
