@@ -50,7 +50,6 @@
         .chip-btn { border: 1px solid #eee; color: #888; padding: 6px 14px; border-radius: 50px; font-size: 13px; font-weight: 700; background: white; }
         .chip-btn.selected { background-color: var(--theme-color) !important; color: white !important; border-color: var(--theme-color) !important; }
 
-        /* 修正核心：將選單層級調至最高，確保不被清單條目遮擋 */
         #settings-menu { 
             position: absolute; 
             top: 60px; 
@@ -69,10 +68,17 @@
         
         #copy-toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: white; padding: 8px 20px; border-radius: 50px; font-size: 12px; font-weight: bold; z-index: 600; display: none; }
         
-        /* 新增回購按鈕樣式 */
         .repurchase-btn { flex: 1; border: 1px solid #eee; border-radius: 12px; padding: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; transition: all 0.2s; background: white; color: #ddd; }
         .repurchase-btn.active-yes { background-color: #ffdde1; color: #ff5c5c; border-color: #ffdde1; }
         .repurchase-btn.active-no { background-color: #f0f0f0; color: #999; border-color: #ccc; }
+
+        .feature-btn {
+            background: white; border: 1px solid #f0f0f0; color: #aaa; font-weight: 900; font-size: 12px;
+            padding: 8px; border-radius: 12px; flex: 1; transition: all 0.2s;
+        }
+        .feature-btn.active {
+            background: var(--theme-color); color: white; border-color: var(--theme-color); box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
     </style>
 </head>
 <body class="h-[100dvh] flex flex-col overflow-hidden">
@@ -140,12 +146,18 @@
     </div>
 
     <div id="list-view-container" class="hidden flex flex-col flex-grow overflow-hidden">
-        <div class="flex-none px-4 py-2 flex justify-between items-center">
-            <div class="bg-white/60 p-1 rounded-full flex gap-1 border border-white flex-grow mr-2">
-                <button onclick="switchListType('month')" id="subtab-month" class="bg-white py-1.5 flex-1 rounded-full font-black shadow-sm text-xs">當月</button>
-                <button onclick="switchListType('year')" id="subtab-year" class="text-gray-300 py-1.5 flex-1 rounded-full font-black text-xs">年度</button>
+        <div class="flex-none px-4 py-2 flex flex-col gap-2">
+            <div class="flex justify-between items-center w-full">
+                <div class="bg-white/60 p-1 rounded-full flex gap-1 border border-white flex-grow mr-2">
+                    <button onclick="switchListType('month')" id="subtab-month" class="bg-white py-1.5 flex-1 rounded-full font-black shadow-sm text-xs">當月</button>
+                    <button onclick="switchListType('year')" id="subtab-year" class="text-gray-300 py-1.5 flex-1 rounded-full font-black text-xs">年度</button>
+                </div>
+                <button onclick="toggleSort()" class="w-8 h-8 bg-white rounded-full shadow-sm text-gray-400 flex items-center justify-center border border-gray-100"><i id="sort-icon" class="fas fa-sort-amount-down"></i></button>
             </div>
-            <button onclick="toggleSort()" class="w-8 h-8 bg-white rounded-full shadow-sm text-gray-400 flex items-center justify-center border border-gray-100"><i id="sort-icon" class="fas fa-sort-amount-down"></i></button>
+            <div class="flex gap-2 w-full">
+                <button onclick="switchListType('stats')" id="subtab-stats" class="feature-btn">每月統計</button>
+                <button onclick="switchListType('repurchase')" id="subtab-repurchase" class="feature-btn">回購明細</button>
+            </div>
         </div>
         <div class="flex-grow overflow-y-auto px-4 pb-24 no-scrollbar" id="list-items-container"></div>
     </div>
@@ -356,7 +368,6 @@
             let actions = isReadOnly ? '' : `<div class="btn-action btn-del" onclick="delRec('${date}',${idx})"><span>刪除</span></div><div class="btn-action btn-edit" onclick="openEntryForm('${date}',${idx}, event)"><span>更新</span></div>`;
             const noteText = record.note ? ` · ${record.note}` : '';
             
-            // Repurchase Icon Logic
             let repIcon = '';
             if (record.repurchase === true) repIcon = `<i class="fas fa-heart text-red-400 ml-2"></i>`;
             else if (record.repurchase === false) repIcon = `<i class="fas fa-heart-broken text-gray-300 ml-2"></i>`;
@@ -403,8 +414,67 @@
         
         window.renderList = () => {
             const container = document.getElementById('list-items-container'); if(!container) return; container.innerHTML = '';
+            
+            // 模式 1: 統計列表
+            if(listType === 'stats') {
+                const statsMap = {};
+                for(let m=1; m<=12; m++) statsMap[m] = { count: 0, cost: 0 };
+                
+                Object.keys(window.drinkDB).forEach(d => {
+                    const m = parseInt(d.split('-')[1]);
+                    window.drinkDB[d].forEach(r => {
+                        statsMap[m].count++;
+                        statsMap[m].cost += (parseInt(r.price) || 0);
+                    });
+                });
+
+                const grid = document.createElement('div');
+                grid.className = "flex flex-col gap-2";
+                
+                for(let m=1; m<=12; m++) {
+                    if(statsMap[m].count === 0) continue;
+                    const item = document.createElement('div');
+                    item.className = "bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center cursor-pointer active:scale-95 transition-transform";
+                    item.innerHTML = `<div><div class="font-black text-lg text-gray-400">${m}月</div></div><div class="text-right"><div class="font-black text-xl" style="color:var(--theme-color)">$${statsMap[m].cost}</div><div class="text-xs font-bold text-gray-300">${statsMap[m].count} 杯</div></div>`;
+                    item.onclick = () => {
+                        currentMonth = m - 1;
+                        switchListType('month');
+                        renderAll();
+                    };
+                    grid.appendChild(item);
+                }
+                if(grid.innerHTML === '') container.innerHTML = '<div class="text-center mt-10 text-gray-300 font-bold">尚無資料</div>';
+                else container.appendChild(grid);
+                return;
+            }
+
             let all = []; const mPrefix = `${YEAR}-${String(currentMonth+1).padStart(2,'0')}`;
             
+            // 模式 2: 回購明細
+            if (listType === 'repurchase') {
+                const yesList = [];
+                const noList = [];
+                Object.keys(window.drinkDB).forEach(d => {
+                    window.drinkDB[d].forEach((r, i) => {
+                        if (r.repurchase === true) yesList.push({...r, date:d, idx:i});
+                        if (r.repurchase === false) noList.push({...r, date:d, idx:i});
+                    });
+                });
+                
+                const createSection = (title, items) => {
+                    const sec = document.createElement('div');
+                    sec.innerHTML = `<h3 class="font-black text-sm text-gray-400 mt-4 mb-2 pl-2">${title} (${items.length})</h3>`;
+                    items.sort((a,b) => b.date.localeCompare(a.date));
+                    items.forEach(r => sec.appendChild(createSwipeItem(r, r.date, r.idx, true))); 
+                    return sec;
+                };
+
+                container.appendChild(createSection('❤️ 值得回購', yesList));
+                container.appendChild(createSection('💔 不再回購', noList));
+                return;
+            }
+
+            // 模式 3 & 4: 當月與年度
             let listTotalCups = 0;
             let listTotalCost = 0;
 
@@ -417,23 +487,26 @@
                 }); 
             });
             
-            // Add List Stats Header
-            const summaryDiv = document.createElement('div');
-            summaryDiv.className = "flex gap-4 mb-4 mt-2 px-2";
-            summaryDiv.innerHTML = `
-                <div class="flex-1 bg-white rounded-2xl p-3 flex flex-col items-center justify-center shadow-sm border border-gray-100">
-                    <div class="text-[10px] font-black text-gray-300">總杯數</div>
-                    <div class="text-xl font-black text-gray-600">${listTotalCups} <span class="text-[10px]">杯</span></div>
-                </div>
-                <div class="flex-1 bg-white rounded-2xl p-3 flex flex-col items-center justify-center shadow-sm border border-gray-100">
-                    <div class="text-[10px] font-black text-gray-300">總金額</div>
-                    <div class="text-xl font-black" style="color:var(--theme-color)">$${listTotalCost}</div>
-                </div>
-            `;
-            container.appendChild(summaryDiv);
+            if (listType === 'month') {
+                 const summaryDiv = document.createElement('div');
+                summaryDiv.className = "flex gap-4 mb-4 mt-2 px-2";
+                summaryDiv.innerHTML = `
+                    <div class="flex-1 bg-white rounded-2xl p-3 flex flex-col items-center justify-center shadow-sm border border-gray-100">
+                        <div class="text-[10px] font-black text-gray-300">總杯數</div>
+                        <div class="text-xl font-black text-gray-600">${listTotalCups} <span class="text-[10px]">杯</span></div>
+                    </div>
+                    <div class="flex-1 bg-white rounded-2xl p-3 flex flex-col items-center justify-center shadow-sm border border-gray-100">
+                        <div class="text-[10px] font-black text-gray-300">總金額</div>
+                        <div class="text-xl font-black" style="color:var(--theme-color)">$${listTotalCost}</div>
+                    </div>
+                `;
+                container.appendChild(summaryDiv);
+            }
 
             all.sort((a,b) => sortOrder === 'desc' ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date));
-            all.forEach(r => container.appendChild(createSwipeItem(r, r.date, r.idx, listType === 'year')));
+            // 年度模式強制唯讀 (isReadOnly = true)
+            const isReadOnly = (listType === 'year');
+            all.forEach(r => container.appendChild(createSwipeItem(r, r.date, r.idx, isReadOnly)));
         };
 
         window.updateStats = () => {
@@ -449,7 +522,23 @@
         window.closeEntryModal = () => { editingIdx = null; toggleModal('entry-modal', false); };
         window.closeDayDetail = () => toggleModal('day-detail-modal', false);
         window.switchView = (v) => { document.getElementById('calendar-view-container').classList.toggle('hidden', v==='list'); document.getElementById('list-view-container').classList.toggle('hidden', v==='calendar'); document.getElementById('tab-calendar').classList.toggle('active', v==='calendar'); document.getElementById('tab-list').classList.toggle('active', v==='list'); };
-        window.switchListType = (t) => { listType = t; document.getElementById('subtab-month').className = t === 'month' ? 'bg-white py-1.5 flex-1 rounded-full font-black shadow-sm text-xs' : 'text-gray-300 py-1.5 flex-1 rounded-full font-black text-xs'; document.getElementById('subtab-year').className = t === 'year' ? 'bg-white py-1.5 flex-1 rounded-full font-black shadow-sm text-xs' : 'text-gray-300 py-1.5 flex-1 rounded-full font-black text-xs'; renderList(); };
+        
+        window.switchListType = (t) => { 
+            listType = t; 
+            // Reset all styles
+            document.getElementById('subtab-month').className = 'text-gray-300 py-1.5 flex-1 rounded-full font-black text-xs';
+            document.getElementById('subtab-year').className = 'text-gray-300 py-1.5 flex-1 rounded-full font-black text-xs';
+            document.getElementById('subtab-stats').classList.remove('active');
+            document.getElementById('subtab-repurchase').classList.remove('active');
+
+            if(t === 'month') document.getElementById('subtab-month').className = 'bg-white py-1.5 flex-1 rounded-full font-black shadow-sm text-xs';
+            else if(t === 'year') document.getElementById('subtab-year').className = 'bg-white py-1.5 flex-1 rounded-full font-black shadow-sm text-xs';
+            else if(t === 'stats') document.getElementById('subtab-stats').classList.add('active');
+            else if(t === 'repurchase') document.getElementById('subtab-repurchase').classList.add('active');
+
+            renderList(); 
+        };
+
         window.clearForm = () => { 
             document.getElementById('input-shop').value = ''; document.getElementById('input-item').value = ''; document.getElementById('input-price').value = ''; document.getElementById('input-note').value = ''; selectedIce = ''; selectedSugar = ''; document.querySelectorAll('.chip-btn').forEach(c => c.classList.remove('selected')); 
             window.setRepurchase(null);
