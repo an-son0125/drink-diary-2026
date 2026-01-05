@@ -60,7 +60,7 @@
             width: 220px; 
             z-index: 500; 
             overflow-y: auto; 
-            max-height: 70vh; 
+            max-height: 80vh; 
             border: 1px solid #eee; 
         }
         .setting-opt { padding: 12px; font-weight: 700; font-size: 14px; border-bottom: 1px solid #f9f9f9; width: 100%; text-align: left; display: flex; align-items: center; gap: 8px; }
@@ -121,6 +121,10 @@
             <button onclick="changeTheme('#f8f4f9', '#b8c0ff', '#5e6472')" class="setting-opt text-[#b8c0ff]">薰衣草紫</button>
             <button onclick="changeTheme('#fff5f5', '#ffafbd', '#4a4a4a')" class="setting-opt text-[#ffafbd]">櫻花粉</button>
             <button onclick="changeTheme('#fffaf0', '#fbc4ab', '#6d597a')" class="setting-opt text-[#fbc4ab]">蜜桃奶茶</button>
+            <div class="h-[1px] bg-gray-100"></div>
+            <button onclick="exportData()" class="setting-opt text-gray-500"><i class="fas fa-file-export w-4"></i> 匯出備份 JSON</button>
+            <button onclick="document.getElementById('import-file').click()" class="setting-opt text-gray-500"><i class="fas fa-file-import w-4"></i> 匯入備份 JSON</button>
+            <input type="file" id="import-file" class="hidden" accept=".json" onchange="importData(event)">
         </div>
 
         <div id="global-stats-container" class="stat-grid">
@@ -198,13 +202,13 @@
         <div class="bg-white w-full sm:w-[380px] modal-content-rounded h-[85vh] flex flex-col shadow-2xl transform translate-y-full transition-transform" id="entry-modal-content">
             <div class="flex-none p-6 pb-2">
                 <div class="flex justify-between items-center mb-3"><span class="font-black text-xl" id="form-title">新增紀錄</span><button onclick="closeEntryModal()" class="opacity-20"><i class="fas fa-times text-xl"></i></button></div>
-                <input type="text" id="input-date-text" class="w-full bg-gray-50 border-b-2 p-3 font-black text-lg outline-none rounded-xl" style="border-color: var(--theme-color)">
             </div>
             <div class="p-6 pt-2 space-y-4 overflow-y-auto no-scrollbar flex-grow">
                 <div class="grid grid-cols-2 gap-3">
+                    <div><label class="text-xs font-black text-gray-400 mb-1 block">日期</label><input type="text" id="input-date-text" class="w-full bg-gray-50 rounded-xl p-3 outline-none font-black border-none" placeholder="2026/01/01"></div>
                     <div><label class="text-xs font-black text-gray-400 mb-1 block">店名</label><input type="text" id="input-shop" class="w-full bg-gray-50 rounded-xl p-3 outline-none font-black border-none" placeholder="50嵐"></div>
-                    <div><label class="text-xs font-black text-gray-400 mb-1 block">品項</label><input type="text" id="input-item" class="w-full bg-gray-50 rounded-xl p-3 outline-none font-black border-none" placeholder="珍珠奶茶"></div>
                 </div>
+                <div><label class="text-xs font-black text-gray-400 mb-1 block">品項</label><input type="text" id="input-item" class="w-full bg-gray-50 rounded-xl p-3 outline-none font-black border-none" placeholder="珍珠奶茶"></div>
                 <div><label class="text-xs font-black text-gray-400 mb-1 block">價格</label><input type="number" id="input-price" class="w-full bg-gray-50 rounded-xl p-3 font-black text-xl outline-none border-none" placeholder="$"></div>
                 <div><label class="text-xs font-black text-gray-400 mb-2 block">冰塊</label><div class="flex flex-wrap gap-1" id="ice-options"></div></div>
                 <div><label class="text-xs font-black text-gray-400 mb-2 block">甜度</label><div class="flex flex-wrap gap-1" id="sugar-options"></div></div>
@@ -317,6 +321,34 @@
             if(val) { localStorage.setItem('custom_uid', val); location.reload(); }
         };
 
+        window.exportData = () => {
+            const dataStr = JSON.stringify({records: window.drinkDB, settings: window.userSettings}, null, 2);
+            const blob = new Blob([dataStr], {type: "application/json"});
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `drink_diary_backup_${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+        };
+
+        window.importData = (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (confirm('匯入將覆蓋目前雲端資料，確定嗎？')) {
+                        window.drinkDB = imported.records || {};
+                        window.userSettings = imported.settings || window.userSettings;
+                        await window.saveData();
+                        alert('匯入成功');
+                    }
+                } catch (err) { alert('檔案格式錯誤'); }
+            };
+            reader.readAsText(file);
+        };
+
         window.applyTheme = () => {
             document.documentElement.style.setProperty('--bg-color', window.userSettings.bgColor);
             document.documentElement.style.setProperty('--theme-color', window.userSettings.themeColor);
@@ -370,7 +402,7 @@
         window.saveEntry = () => {
             const shop = document.getElementById('input-shop').value, item = document.getElementById('input-item').value, price = document.getElementById('input-price').value;
             let chosenDate = document.getElementById('input-date-text').value.replace(/\//g, '-');
-            if(!shop || !item || !price || !selectedIce || !selectedSugar) return alert('資訊不完整');
+            if(!shop || !item || !price || !selectedIce || !selectedSugar || !chosenDate) return alert('資訊不完整');
             if(!window.drinkDB[chosenDate]) window.drinkDB[chosenDate] = [];
             const data = { 
                 shop, item, price, ice: selectedIce, sugar: selectedSugar, 
@@ -497,7 +529,6 @@
             document.getElementById('list-view-container').classList.toggle('hidden', v==='calendar'); 
             document.getElementById('tab-calendar').classList.toggle('active', v==='calendar'); 
             document.getElementById('tab-list').classList.toggle('active', v==='list'); 
-            // 需求 3：切換清單時隱藏全域統計卡片
             document.getElementById('global-stats-container').classList.toggle('hidden', v==='list');
         };
         
