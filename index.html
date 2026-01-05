@@ -80,7 +80,6 @@
             background: var(--theme-color); color: white; border-color: var(--theme-color); box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
         
-        /* 新增回購篩選樣式 */
         .repurchase-filter-btn {
             padding: 8px 12px; border-radius: 12px; font-weight: 900; font-size: 12px; flex: 1; text-align: center; border: 1px solid #eee; background: white; color: #ccc;
         }
@@ -124,7 +123,7 @@
             <button onclick="changeTheme('#fffaf0', '#fbc4ab', '#6d597a')" class="setting-opt text-[#fbc4ab]">蜜桃奶茶</button>
         </div>
 
-        <div class="stat-grid">
+        <div id="global-stats-container" class="stat-grid">
             <div class="stat-card"><div class="stat-label">本月累積</div><div class="flex items-baseline"><span class="stat-value" id="month-cups">0</span><span class="stat-unit">杯</span></div></div>
             <div class="stat-card"><div class="stat-label">本月花費</div><div class="flex items-baseline"><span class="stat-value" id="month-cost">0</span><span class="stat-unit">元</span></div></div>
             <div class="stat-card"><div class="stat-label">年度累積</div><div class="flex items-baseline"><span class="stat-value" id="year-cups">0</span><span class="stat-unit">杯</span></div></div>
@@ -167,8 +166,8 @@
                 <button onclick="switchListType('repurchase')" id="subtab-repurchase" class="feature-btn">回購明細</button>
             </div>
             <div id="repurchase-filters" class="hidden flex gap-2 w-full mt-1">
-                <button onclick="setRepurchaseFilter(true)" id="filter-repurchase-yes" class="repurchase-filter-btn">值得回購 ❤️</button>
-                <button onclick="setRepurchaseFilter(false)" id="filter-repurchase-no" class="repurchase-filter-btn">不再回購 💔</button>
+                <button onclick="setRepurchaseFilter(true)" id="filter-repurchase-yes" class="repurchase-filter-btn">值得回購 <i class="fas fa-heart"></i></button>
+                <button onclick="setRepurchaseFilter(false)" id="filter-repurchase-no" class="repurchase-filter-btn">不再回購 <i class="fas fa-heart-broken"></i></button>
             </div>
         </div>
         <div class="flex-grow overflow-y-auto px-4 pb-24 no-scrollbar" id="list-items-container"></div>
@@ -240,8 +239,8 @@
         window.drinkDB = {};
         window.userSettings = { bgColor: '#f4f1ea', themeColor: '#95a78d', textColor: '#5b5b5b' };
         let unsubscribeSync = null, currentMonth = new Date().getMonth(), currentViewingDate = '', listType = 'month', editingIdx = null, selectedIce = '', selectedSugar = '', sortOrder = 'desc', activeUID = null;
-        let selectedRepurchase = null; // null, true, false
-        let repurchaseFilterVal = true; // 新增：用於控制回購明細篩選 (預設值得回購)
+        let selectedRepurchase = null; 
+        let repurchaseFilterVal = true; 
         const YEAR = 2026;
 
         onAuthStateChanged(auth, (user) => { 
@@ -346,7 +345,6 @@
             btnNo.classList.toggle('active-no', val === false);
         };
 
-        // 新增：設定回購篩選值
         window.setRepurchaseFilter = (val) => {
             repurchaseFilterVal = val;
             document.getElementById('filter-repurchase-yes').classList.toggle('active', val === true);
@@ -459,33 +457,26 @@
 
             let all = []; const mPrefix = `${YEAR}-${String(currentMonth+1).padStart(2,'0')}`;
             
-            // 修正回購明細邏輯：根據篩選按鈕狀態顯示
             if (listType === 'repurchase') {
-                const filteredList = [];
                 Object.keys(window.drinkDB).forEach(d => {
                     window.drinkDB[d].forEach((r, i) => {
-                        if (r.repurchase === repurchaseFilterVal) filteredList.push({...r, date:d, idx:i});
+                        if (r.repurchase === repurchaseFilterVal) all.push({...r, date:d, idx:i});
                     });
                 });
-                
-                filteredList.sort((a,b) => b.date.localeCompare(a.date));
-                if(filteredList.length === 0) {
-                    container.innerHTML = '<div class="text-center mt-10 text-gray-300 font-bold">尚無相關回購資料</div>';
-                } else {
-                    filteredList.forEach(r => container.appendChild(createSwipeItem(r, r.date, r.idx, true))); 
-                }
-                return;
+            } else {
+                Object.keys(window.drinkDB).forEach(d => { 
+                    if (listType === 'month' && !d.startsWith(mPrefix)) return; 
+                    window.drinkDB[d].forEach((r, i) => { all.push({...r, date: d, idx: i}); }); 
+                });
+            }
+            
+            all.sort((a,b) => sortOrder === 'desc' ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date));
+            if(listType === 'repurchase' && all.length === 0) {
+                 container.innerHTML = '<div class="text-center mt-10 text-gray-300 font-bold">尚無相關回購資料</div>';
+                 return;
             }
 
-            Object.keys(window.drinkDB).forEach(d => { 
-                if (listType === 'month' && !d.startsWith(mPrefix)) return; 
-                window.drinkDB[d].forEach((r, i) => { all.push({...r, date: d, idx: i}); }); 
-            });
-            
-            // 此處已根據需求 2 刪除總杯數與總金額的顯示欄位代碼
-
-            all.sort((a,b) => sortOrder === 'desc' ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date));
-            const isReadOnly = (listType === 'year');
+            const isReadOnly = (listType === 'year' || listType === 'repurchase');
             all.forEach(r => container.appendChild(createSwipeItem(r, r.date, r.idx, isReadOnly)));
         };
 
@@ -501,7 +492,14 @@
         window.openQuickAdd = () => openEntryForm(null);
         window.closeEntryModal = () => { editingIdx = null; toggleModal('entry-modal', false); };
         window.closeDayDetail = () => toggleModal('day-detail-modal', false);
-        window.switchView = (v) => { document.getElementById('calendar-view-container').classList.toggle('hidden', v==='list'); document.getElementById('list-view-container').classList.toggle('hidden', v==='calendar'); document.getElementById('tab-calendar').classList.toggle('active', v==='calendar'); document.getElementById('tab-list').classList.toggle('active', v==='list'); };
+        window.switchView = (v) => { 
+            document.getElementById('calendar-view-container').classList.toggle('hidden', v==='list'); 
+            document.getElementById('list-view-container').classList.toggle('hidden', v==='calendar'); 
+            document.getElementById('tab-calendar').classList.toggle('active', v==='calendar'); 
+            document.getElementById('tab-list').classList.toggle('active', v==='list'); 
+            // 需求 3：切換清單時隱藏全域統計卡片
+            document.getElementById('global-stats-container').classList.toggle('hidden', v==='list');
+        };
         
         window.switchListType = (t) => { 
             listType = t; 
@@ -510,7 +508,6 @@
             document.getElementById('subtab-stats').classList.remove('active');
             document.getElementById('subtab-repurchase').classList.remove('active');
             
-            // 切換時顯示/隱藏回購篩選器
             const filterRow = document.getElementById('repurchase-filters');
             filterRow.classList.toggle('hidden', t !== 'repurchase');
 
@@ -519,7 +516,7 @@
             else if(t === 'stats') document.getElementById('subtab-stats').classList.add('active');
             else if(t === 'repurchase') {
                 document.getElementById('subtab-repurchase').classList.add('active');
-                setRepurchaseFilter(true); // 預設進入時顯示值得回購
+                setRepurchaseFilter(true); 
             }
             renderList(); 
         };
